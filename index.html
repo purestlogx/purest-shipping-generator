@@ -110,7 +110,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
     <div class="section">
       <h2>Shipment Details</h2>
       <div class="row">
-        <div class="field"><label>Invoice Number</label><input type="text" id="ci-inv" placeholder="e.g. PNSGPH-20260402AN" oninput="autoDetect('ci')"></div>
+        <div class="field"><label>Invoice Number</label><input type="text" id="ci-inv" placeholder="e.g. PNSGPH-20260402-AN" oninput="autoDetect('ci')"></div>
         <div class="field"><label>Date <span id="ci-date-badge"></span></label><input type="date" id="ci-date"></div>
         <div class="field"><label>Destination <span id="ci-ctry-badge"></span></label>
           <select id="ci-ctry" onchange="fillConsignee('ci')">
@@ -165,7 +165,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
     <div class="section">
       <h2>Shipment Details</h2>
       <div class="row">
-        <div class="field"><label>Invoice Number</label><input type="text" id="pl-inv" placeholder="e.g. PNSGPH-20260402AN" oninput="autoDetect('pl')"></div>
+        <div class="field"><label>Invoice Number</label><input type="text" id="pl-inv" placeholder="e.g. PNSGPH-20260402-AN" oninput="autoDetect('pl')"></div>
         <div class="field"><label>Date <span id="pl-date-badge"></span></label><input type="date" id="pl-date"></div>
         <div class="field"><label>Destination <span id="pl-ctry-badge"></span></label>
           <select id="pl-ctry" onchange="fillConsignee('pl')">
@@ -716,7 +716,7 @@ function deleteSKU(id) {
 function autoDetect(p) {
   const v = document.getElementById(p+'-inv').value.toUpperCase();
   let c = '';
-  if (v.includes('PNSGPH')) c='PH'; else if (v.includes('PNSGMY')) c='MY'; else if (v.includes('PNSGAUS')) c='AUS';
+  if (v.includes('PNSGPH')) c='PH'; else if (v.includes('PNSGMY')) c='MY'; else if (v.includes('PNSGAUS') || v.includes('PNSGAU')) c='AUS';
   if (c) { document.getElementById(p+'-ctry').value=c; fillConsignee(p); document.getElementById(p+'-ctry-badge').innerHTML='<span class="badge">✓ auto</span>'; }
   const m = v.match(/-(\d{8})/);
   if (m) { const r=m[1], ds=r.slice(0,4)+'-'+r.slice(4,6)+'-'+r.slice(6,8); if(!isNaN(new Date(ds).getTime())){ document.getElementById(p+'-date').value=ds; document.getElementById(p+'-date-badge').innerHTML='<span class="badge">✓ auto</span>'; } }
