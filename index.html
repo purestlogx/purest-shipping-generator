@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Purest Nest Document Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c; }
+.app-header { background: #1a1a2e; color: white; padding: 18px 28px; display: flex; align-items: center; gap: 14px; }
+.logo { width: 42px; height: 42px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #1a1a2e; font-size: 18px; }
+.app-header h1 { font-size: 20px; font-weight: 700; }
+.app-header p { font-size: 12px; opacity: 0.7; }
+.container { max-width: 980px; margin: 0 auto; padding: 0 16px 40px; }
+.tabs { display: flex; margin: 24px 0 0; flex-wrap: wrap; }
+.tab { padding: 12px 24px; font-size: 14px; font-weight: 700; cursor: pointer; border-radius: 12px 12px 0 0; border: 2px solid transparent; color: #718096; background: #e2e8f0; margin-right: 4px; margin-bottom: -2px; }
+.tab.active-ci  { background: #fff; color: #553c9a; border-color: #d6bcfa; border-bottom-color: white; }
+.tab.active-pl  { background: #fff; color: #276749; border-color: #9ae6b4; border-bottom-color: white; }
+.tab.active-cl  { background: #fff; color: #7b341e; border-color: #fbd38d; border-bottom-color: white; }
+.tab.active-skm { background: #fff; color: #2b6cb0; border-color: #bee3f8; border-bottom-color: white; }
+.panel { display: none; background: white; border-radius: 0 12px 12px 12px; border: 2px solid #e2e8f0; }
+.panel.show { display: block; }
+.panel-ci  { border-color: #d6bcfa; }
+.panel-pl  { border-color: #9ae6b4; }
+.panel-cl  { border-color: #fbd38d; }
+.panel-skm { border-color: #bee3f8; }
+.section { padding: 22px 24px; border-bottom: 1px solid #f0f4f8; }
+.section:last-child { border-bottom: none; }
+.section h2 { font-size: 13px; font-weight: 700; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+.section h2 span { font-size: 11px; font-weight: 400; color: #cbd5e0; text-transform: none; letter-spacing: 0; margin-left: 8px; }
+.row { display: flex; gap: 14px; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 150px; }
+.field label { font-size: 12px; font-weight: 600; color: #718096; }
+.field input, .field select { padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; width: 100%; transition: border 0.2s; }
+.field input:focus, .field select:focus { border-color: #667eea; }
+.consignee-box { background: #f7fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; font-size: 13px; line-height: 1.7; color: #4a5568; margin-top: 12px; }
+.badge { display: inline-block; background: #f0fff4; color: #276749; border: 1px solid #9ae6b4; border-radius: 20px; font-size: 11px; font-weight: 600; padding: 1px 8px; margin-left: 6px; }
+.col-map { display: flex; flex-wrap: wrap; margin-bottom: 10px; }
+.col-map-item { background: #edf2f7; border: 1px solid #e2e8f0; padding: 4px 9px; font-size: 11px; color: #4a5568; }
+.col-map-item:first-child { border-radius: 6px 0 0 6px; }
+.col-map-item:last-child  { border-radius: 0 6px 6px 0; }
+.col-map-item span { display: block; font-size: 9px; color: #a0aec0; text-transform: uppercase; }
+.paste-area { width: 100%; padding: 12px 14px; border: 2px dashed #bee3f8; border-radius: 10px; font-size: 13px; font-family: monospace; background: #ebf8ff; color: #2b6cb0; outline: none; resize: none; min-height: 52px; }
+.paste-hint { font-size: 11.5px; color: #718096; margin-top: 5px; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 14px; }
+.tbl th { background: #2d3748; color: white; padding: 8px 6px; text-align: center; font-size: 10.5px; font-weight: 600; }
+.tbl th.left { text-align: left; padding-left: 8px; }
+.tbl td { padding: 5px 5px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+.tbl tr:nth-child(even) td { background: #f7fafc; }
+.tbl input { width: 100%; padding: 5px 6px; border: 1.5px solid #e2e8f0; border-radius: 6px; font-size: 12px; outline: none; }
+.tbl input:focus { border-color: #667eea; }
+.tbl select { width: 100%; padding: 5px 6px; border: 1.5px solid #e2e8f0; border-radius: 6px; font-size: 12px; outline: none; background: white; }
+.tbl select:focus { border-color: #667eea; }
+.rtotal { text-align: right; padding-right: 8px; font-size: 12px; color: #4a5568; white-space: nowrap; }
+.totals-bar { display: flex; gap: 16px; background: #f7fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 10px 16px; margin-top: 10px; flex-wrap: wrap; }
+.totals-bar span { font-size: 13px; color: #4a5568; }
+.totals-bar strong { color: #2d3748; }
+.btn-add   { padding: 8px 16px; background: #ebf4ff; color: #3182ce; border: 1.5px solid #bee3f8; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 12px; }
+.btn-add:hover { background: #bee3f8; }
+.btn-clear { padding: 8px 16px; background: #fff5f5; color: #e53e3e; border: 1.5px solid #fed7d7; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 12px; margin-left: 8px; }
+.btn-del   { background: none; border: none; cursor: pointer; color: #fc8181; font-size: 16px; padding: 2px 5px; }
+.pallet-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.pallet-row label { font-size: 12px; font-weight: 600; color: #718096; min-width: 58px; }
+.pallet-row input { padding: 7px 10px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 13px; outline: none; width: 88px; }
+.gen-section { padding: 20px 24px; }
+.btn-gen { padding: 13px 28px; border: none; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: 700; transition: all 0.2s; }
+.btn-ci-gen { background: linear-gradient(135deg,#667eea,#764ba2); color: white; }
+.btn-pl-gen { background: linear-gradient(135deg,#11998e,#38ef7d); color: white; }
+.btn-cl-gen { background: linear-gradient(135deg,#ed8936,#dd6b20); color: white; }
+.btn-gen:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+.notice { font-size: 12px; color: #a0aec0; margin-top: 10px; }
+@keyframes flashGreen { 0%{background:#c6f6d5} 100%{background:transparent} }
+.flash td { animation: flashGreen 0.6s ease; }
+
+/* SKU Manager styles */
+.skm-add-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 18px; padding: 16px 18px; background: #f7fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; }
+.skm-add-row .field { min-width: 130px; }
+.btn-export { padding: 7px 14px; background: #ebf4ff; color: #2b6cb0; border: 1.5px solid #bee3f8; border-radius: 8px; cursor: pointer; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.btn-export:hover { background: #bee3f8; }
+.btn-import-label { padding: 7px 14px; background: #f0fff4; color: #276749; border: 1.5px solid #9ae6b4; border-radius: 8px; cursor: pointer; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.btn-save { padding: 9px 20px; background: #2b6cb0; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; transition: background 0.2s; align-self: flex-end; }
+.btn-save:hover { background: #2c5282; }
+.skm-empty { text-align: center; color: #a0aec0; font-size: 13px; padding: 24px 0; }
+.tag-unmatched { display: inline-block; background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; border-radius: 12px; font-size: 10px; font-weight: 600; padding: 1px 7px; margin-left: 5px; }
+.tag-matched { display: inline-block; background: #f0fff4; color: #276749; border: 1px solid #9ae6b4; border-radius: 12px; font-size: 10px; font-weight: 600; padding: 1px 7px; margin-left: 5px; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="logo">PN</div>
+  <div>
+    <h1>Purest Nest Document Generator</h1>
+    <p>Commercial Invoice · Packing List · Carton Labels</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <div class="tab active-ci" id="tab-ci"  onclick="switchTab('ci')">🧾 Commercial Invoice</div>
+    <div class="tab"           id="tab-pl"  onclick="switchTab('pl')">📦 Packing List</div>
+    <div class="tab"           id="tab-cl"  onclick="switchTab('cl')">🏷️ Carton Labels</div>
+    <div class="tab"           id="tab-skm" onclick="switchTab('skm')">⚙️ SKU Manager</div>
+  </div>
+
+  <!-- ═══ CI PANEL ═══ -->
+  <div class="panel panel-ci show" id="panel-ci">
+    <div class="section">
+      <h2>Shipment Details</h2>
+      <div class="row">
+        <div class="field"><label>Invoice Number</label><input type="text" id="ci-inv" placeholder="e.g. PNSGPH-20260402AN" oninput="autoDetect('ci')"></div>
+        <div class="field"><label>Date <span id="ci-date-badge"></span></label><input type="date" id="ci-date"></div>
+        <div class="field"><label>Destination <span id="ci-ctry-badge"></span></label>
+          <select id="ci-ctry" onchange="fillConsignee('ci')">
+            <option value="">— Select —</option>
+            <option value="PH">🇵🇭 Philippines</option>
+            <option value="MY">🇲🇾 Malaysia</option>
+            <option value="AUS">🇦🇺 Australia</option>
+          </select>
+        </div>
+      </div>
+      <div class="consignee-box" id="ci-consignee">Select a country or type an invoice number to auto-fill.</div>
+    </div>
+    <div class="section">
+      <h2>Line Items</h2>
+      <div class="col-map">
+        <div class="col-map-item"><span>Col A</span>Item No.</div>
+        <div class="col-map-item"><span>Col B</span>Description</div>
+        <div class="col-map-item"><span>Col C</span>Qty</div>
+        <div class="col-map-item"><span>Col D</span>Unit Price (SGD)</div>
+      </div>
+      <textarea class="paste-area" id="ci-paste" rows="2" placeholder="Copy full table from Excel (incl. header) → click here → Ctrl+V"></textarea>
+      <div class="paste-hint">💡 Paste the whole table at once — header is auto-skipped.</div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:30px">#</th>
+            <th class="left" style="min-width:200px">Item Description</th>
+            <th style="width:70px">Qty</th>
+            <th style="width:105px">Unit Price (SGD)</th>
+            <th style="width:115px">Total (SGD)</th>
+            <th style="width:30px"></th>
+          </tr></thead>
+          <tbody id="ci-body"></tbody>
+        </table>
+      </div>
+      <div class="totals-bar">
+        <span>Items: <strong id="ci-ti">0</strong></span>
+        <span>Total Qty: <strong id="ci-tq">0</strong></span>
+        <span>Total Value: <strong id="ci-tv">SGD 0.00</strong></span>
+      </div>
+      <button class="btn-add" onclick="addCI()">+ Add Row</button>
+      <button class="btn-clear" onclick="clearTbl('ci')">✕ Clear All</button>
+    </div>
+    <div class="gen-section">
+      <button class="btn-gen btn-ci-gen" onclick="genCI()">⬇ Download Commercial Invoice (PDF)</button>
+      <p class="notice">PDF will download directly to your device.</p>
+    </div>
+  </div>
+
+  <!-- ═══ PL PANEL ═══ -->
+  <div class="panel panel-pl" id="panel-pl">
+    <div class="section">
+      <h2>Shipment Details</h2>
+      <div class="row">
+        <div class="field"><label>Invoice Number</label><input type="text" id="pl-inv" placeholder="e.g. PNSGPH-20260402AN" oninput="autoDetect('pl')"></div>
+        <div class="field"><label>Date <span id="pl-date-badge"></span></label><input type="date" id="pl-date"></div>
+        <div class="field"><label>Destination <span id="pl-ctry-badge"></span></label>
+          <select id="pl-ctry" onchange="fillConsignee('pl')">
+            <option value="">— Select —</option>
+            <option value="PH">🇵🇭 Philippines</option>
+            <option value="MY">🇲🇾 Malaysia</option>
+            <option value="AUS">🇦🇺 Australia</option>
+          </select>
+        </div>
+      </div>
+      <div class="consignee-box" id="pl-consignee">Select a country or type an invoice number to auto-fill.</div>
+    </div>
+    <div class="section">
+      <h2>Line Items</h2>
+      <div class="col-map">
+        <div class="col-map-item"><span>Col A</span>Pallet No.</div>
+        <div class="col-map-item"><span>Col B</span>Item Code</div>
+        <div class="col-map-item"><span>Col C</span>Description</div>
+        <div class="col-map-item"><span>Col D</span>CTN</div>
+        <div class="col-map-item"><span>Col E</span>Qty</div>
+        <div class="col-map-item"><span>Col F</span>Net Wt</div>
+        <div class="col-map-item"><span>Col G</span>Gross Wt</div>
+      </div>
+      <textarea class="paste-area" id="pl-paste" rows="2" placeholder="Copy full table from Excel (incl. header) → click here → Ctrl+V"></textarea>
+      <div class="paste-hint">💡 Paste the whole table at once — header is auto-skipped.</div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:28px">#</th>
+            <th style="width:58px">Pallet No.</th>
+            <th style="width:65px">Item Code</th>
+            <th class="left" style="min-width:160px">Description</th>
+            <th style="width:45px">CTN</th>
+            <th style="width:50px">Qty</th>
+            <th style="width:72px">Net Wt</th>
+            <th style="width:78px">Gross Wt</th>
+            <th style="width:78px">Total Net</th>
+            <th style="width:82px">Total Gross</th>
+            <th style="width:28px"></th>
+          </tr></thead>
+          <tbody id="pl-body"></tbody>
+        </table>
+      </div>
+      <div class="totals-bar">
+        <span>Items: <strong id="pl-ti">0</strong></span>
+        <span>CTN: <strong id="pl-tc">0</strong></span>
+        <span>Qty: <strong id="pl-tq">0</strong></span>
+        <span>Net Wt: <strong id="pl-tn">0</strong> KGM</span>
+        <span>Gross Wt: <strong id="pl-tg">0</strong> KGM</span>
+      </div>
+      <button class="btn-add" onclick="addPL()">+ Add Row</button>
+      <button class="btn-clear" onclick="clearTbl('pl')">✕ Clear All</button>
+    </div>
+    <div class="section">
+      <h2>Pallet Dimensions</h2>
+      <div id="pallets"></div>
+      <button class="btn-add" onclick="addPallet()">+ Add Pallet</button>
+    </div>
+    <div class="gen-section">
+      <button class="btn-gen btn-pl-gen" onclick="genPL()">⬇ Download Packing List (PDF)</button>
+      <p class="notice">PDF will download directly to your device.</p>
+    </div>
+  </div>
+
+  <!-- ═══ CARTON LABEL PANEL ═══ -->
+  <div class="panel panel-cl" id="panel-cl">
+    <div class="section">
+      <h2>Shipment Details</h2>
+      <div class="row">
+        <div class="field">
+          <label>PO No.</label>
+          <input type="text" id="cl-po" placeholder="e.g. PNSG-PH-20260402">
+        </div>
+        <div class="field">
+          <label>Delivery Location</label>
+          <select id="cl-loc">
+            <option value="">— Select —</option>
+            <option value="MY-NJV">MY-NJV</option>
+            <option value="PH-INSPIRE">PH-INSPIRE</option>
+            <option value="AU-INVENCO">AU-INVENCO</option>
+            <option value="WATSONS">WATSONS</option>
+            <option value="GUARDIAN">GUARDIAN</option>
+            <option value="NTUC">NTUC</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Label Items <span>Paste from Excel or add manually</span></h2>
+      <div class="col-map">
+        <div class="col-map-item"><span>Col A</span>SKU Code</div>
+        <div class="col-map-item"><span>Col B</span>Product Code (skipped)</div>
+        <div class="col-map-item"><span>Col C</span>Product Name</div>
+        <div class="col-map-item"><span>Col D</span>Qty</div>
+      </div>
+      <textarea class="paste-area" id="cl-paste" rows="2" placeholder="Copy from Excel (incl. header) → click here → Ctrl+V — SKU auto-detects Category"></textarea>
+      <div class="paste-hint">💡 SKU Code is looked up in your SKU Manager to auto-fill Category and Qty/Ctn.</div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:28px">#</th>
+            <th style="width:90px">SKU Code</th>
+            <th class="left" style="min-width:180px">Item Name</th>
+            <th style="width:130px">Category</th>
+            <th style="width:80px">Qty / Ctn</th>
+            <th style="width:80px">Total Qty</th>
+            <th style="width:28px"></th>
+          </tr></thead>
+          <tbody id="cl-body"></tbody>
+        </table>
+      </div>
+      <button class="btn-add" onclick="addCL()">+ Add Item</button>
+      <button class="btn-clear" onclick="clearTbl('cl')">✕ Clear All</button>
+    </div>
+    <div class="gen-section">
+      <button class="btn-gen btn-cl-gen" onclick="genLabels()">⬇ Download Carton Labels (PDF)</button>
+      <p class="notice">Generates one 100×150mm label per carton for all items. PDF downloads directly.</p>
+    </div>
+  </div>
+
+  <!-- ═══ SKU MANAGER PANEL ═══ -->
+  <div class="panel panel-skm" id="panel-skm">
+
+    <!-- Export / Import bar -->
+    <div class="section" style="padding:14px 24px;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:12px;font-weight:600;color:#718096;margin-right:4px;">SKU Database:</span>
+        <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+        <label class="btn-import-label">
+          ⬆ Import CSV
+          <input type="file" id="import-file" accept=".csv" onchange="importCSV(this)" style="display:none">
+        </label>
+        <span style="font-size:11px;color:#a0aec0;">CSV format: SKU Code · Product Name · Category Name. Duplicate codes are skipped.</span>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="section">
+      <h2>Categories <span>Each category has a default Qty / Ctn that auto-fills on the label</span></h2>
+      <div class="skm-add-row">
+        <div class="field">
+          <label>Category Name</label>
+          <input type="text" id="cat-name" placeholder="e.g. Melts">
+        </div>
+        <div class="field" style="max-width:160px">
+          <label>Default Qty / Ctn</label>
+          <input type="number" id="cat-qty" placeholder="e.g. 40" min="1">
+        </div>
+        <button class="btn-save" onclick="saveCategory()">+ Add Category</button>
+      </div>
+      <table class="tbl" id="cat-tbl">
+        <thead><tr>
+          <th style="width:28px">#</th>
+          <th class="left">Category Name</th>
+          <th style="width:140px">Default Qty / Ctn</th>
+          <th style="width:60px"></th>
+        </tr></thead>
+        <tbody id="cat-body"></tbody>
+      </table>
+      <p class="skm-empty" id="cat-empty" style="display:none">No categories yet. Add one above.</p>
+    </div>
+
+    <!-- SKUs -->
+    <div class="section">
+      <h2>SKU Database <span>Maps SKU Code → Product Name + Category</span></h2>
+
+      <!-- Single add -->
+      <div class="skm-add-row">
+        <div class="field">
+          <label>SKU Code</label>
+          <input type="text" id="sku-code" placeholder="e.g. PN-SG-001">
+        </div>
+        <div class="field">
+          <label>Product Name</label>
+          <input type="text" id="sku-name" placeholder="e.g. Skin Glow Melts 30s">
+        </div>
+        <div class="field" style="max-width:200px">
+          <label>Category</label>
+          <select id="sku-cat"><option value="">— Select —</option></select>
+        </div>
+        <button class="btn-save" onclick="saveSKU()">+ Add SKU</button>
+      </div>
+
+      <!-- Bulk paste -->
+      <div style="margin-bottom:18px">
+        <div class="col-map" style="margin-bottom:6px">
+          <div class="col-map-item"><span>Col A</span>SKU Code</div>
+          <div class="col-map-item"><span>Col B</span>Product Name</div>
+          <div class="col-map-item"><span>Col C</span>Category Name</div>
+        </div>
+        <textarea class="paste-area" id="sku-bulk-paste" rows="2" placeholder="Copy SKU rows from Excel (incl. header) → click here → Ctrl+V  — Category must match an existing category name exactly"></textarea>
+        <div class="paste-hint">💡 Category name must match exactly (e.g. "Melts"). Unmatched categories are left blank for manual selection.</div>
+      </div>
+      <table class="tbl">
+        <thead><tr>
+          <th style="width:28px">#</th>
+          <th style="width:130px">SKU Code</th>
+          <th class="left">Product Name</th>
+          <th style="width:160px">Category</th>
+          <th style="width:60px"></th>
+        </tr></thead>
+        <tbody id="sku-body"></tbody>
+      </table>
+      <p class="skm-empty" id="sku-empty" style="display:none">No SKUs yet. Add one above.</p>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+const { jsPDF } = window.jspdf;
+
+// ══════════════════════════════════════════
+// DATA — loaded from localStorage
+// ══════════════════════════════════════════
+const CONS = {
+  PH:  { label:'PHILIPPINES', buyer:'', shipTo:'Warehouse 4, C-Teknik Industrial, 143 P. Gregorio Street, Lingunan, Valenzuela City', contact:'POC: Josue Sacdalan | Phone: 0962 924 4997', recv:'Mon-Sat, 9AM-6PM' },
+  MY:  { label:'MALAYSIA', buyer:'The Purest Group Sdn Bhd, A-13-3, Anjung Hijau, Bukit Jalil, 57000, Kuala Lumpur', shipTo:'Purest Co (NV) Warehouse, Mapletree Logistics Hub, First Floor Block 1 Unit 1, Jalan 22/1, Persiaran Jubli Perak, Seksyen 22, 40300 Shah Alam, Selangor Malaysia', contact:'Sylvia: +60126785601 | Kai: +60 12-382 3665', recv:'' },
+  AUS: { label:'AUSTRALIA', buyer:'1ST STEP PTY LTD, 1/7 The Boulevard, Glen Waverley VIC 3150, Australia | TEL: +6591019928 | ATTN: Mr Tyler Thi Ha', shipTo:'Purest Nest Warehouse, C/- Warehouse A, Kookaburra Logistics Estate, 2 Kookaburra Road North, Prestons NSW 2170', contact:'', recv:'' }
+};
+
+// In-memory DB — persisted to localStorage
+let CATS = []; // { id, name, qty }
+let SKUS = []; // { id, code, name, catId }
+
+function loadDB() {
+  try { CATS = JSON.parse(localStorage.getItem('pn_cats') || '[]'); } catch(e){ CATS=[]; }
+  try { SKUS = JSON.parse(localStorage.getItem('pn_skus') || '[]'); } catch(e){ SKUS=[]; }
+
+  if (!CATS.length) {
+    CATS = [
+      {"id":"mnztq70quxh9","name":"30 sachets","qty":10},
+      {"id":"mnztq70q8d3q","name":"15 sachets","qty":20},
+      {"id":"mnztq70qunxn","name":"Melts","qty":40},
+      {"id":"mnztq70q42l2","name":"Powder","qty":27},
+      {"id":"mnztw0nbiv8t","name":"DBD","qty":10},
+      {"id":"mnztw54fn415","name":"Matcha","qty":18},
+      {"id":"mnztwdo8t4t8","name":"HHS","qty":15},
+      {"id":"mnztwkwflme3","name":"PEH","qty":10},
+      {"id":"mnztwwwfrvrf","name":"OMB","qty":10}
+    ];
+    saveDB();
+  }
+
+  if (!SKUS.length) {
+    SKUS = [
+      {"id":"mnztx5df45a2","code":"PN-SB-ALD-15","name":"Ashwa Lychee Drink","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dfuwmo","code":"PN-SB-CGB6-15","name":"Collagen Glow Berries","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5df0y7g","code":"PN-SB-GTS-15","name":"Ginseng Turmeric Superjuice","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dfgi6v","code":"PN-SB-MAP-15","name":"Maca Ashwa Powerjuice","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dfi2jf","code":"PN-SB-PHV-15","name":"Pomegranate Hair Vitality","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5df5xvq","code":"PN-SB-SAJ-15","name":"Supergreens Antioxidant Juice","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5df2qxp","code":"PN-SB-SOSE-15","name":"Sicilian Orange Slimming Elixir","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dgcnrh","code":"PN-SB-STG-15","name":"Snow Tomato Glowjuice","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dgylr6","code":"PN-SB-BCCE-15","name":"Black Cherry Ceramide Elixir","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dg3q26","code":"PN-SB-CGCY6-15","name":"Collagen Glow Yoghurt Cr\u00e8me","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dgtg6q","code":"PN-SB-CGSS6-15","name":"Collagen Glow Strawberry Smoothie","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dgsnym","code":"PN-SB-CRMS-15","name":"Collagen Reforge Mango Swirl","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dgovpx","code":"PN-SB-CGBZ6-15","name":"Collagen Glow Berries Zero","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dgkxv0","code":"PN-SB-CGBM-15","name":"Collagen Glow Berries Mini","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dg9p09","code":"PN-SB-ALD-30","name":"Ashwa Lychee Drink","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dgxzkk","code":"PN-SB-CGB6-30","name":"Collagen Glow Berries","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dgt2q6","code":"PN-SB-GTS-30","name":"Ginseng Turmeric Superjuice","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dgkku4","code":"PN-SB-MAP-30","name":"Maca Ashwa Powerjuice","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dglajh","code":"PN-SB-PHV-30","name":"Pomegranate Hair Vitality","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dgul4b","code":"PN-SB-SAJ-30","name":"Supergreens Antioxidant Juice","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dg7qfg","code":"PN-SB-SOSE-30","name":"Sicilian Orange Slimming Elixir","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dgpqbp","code":"PN-SB-STG-30","name":"Snow Tomato Glowjuice","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dg7kvr","code":"PN-SB-BCCE-30","name":"Black Cherry Ceramide Elixir","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dgk4py","code":"PN-SB-CGCY6-30","name":"Collagen Glow Yoghurt Cr\u00e8me","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dgjm8r","code":"PN-SB-CGSS6-30","name":"Collagen Glow Strawberry Smoothie","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dg2yi3","code":"PN-SB-CRMS-30","name":"Collagen Reforge Mango Swirl","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dgknn3","code":"PN-SB-CGBZ6-30","name":"Collagen Glow Berries Zero","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dghw23","code":"PN-SB-CGBM-30","name":"Collagen Glow Berries Mini","catId":"mnztq70q8d3q"},
+      {"id":"mnztx5dgd1ii","code":"PN-ES-MCP-1","name":"Marine Collagen Peptides - 300g","catId":"mnztq70q42l2"},
+      {"id":"mnztx5dgv44j","code":"PN-ES-HH-1","name":"Herbal Harmony - 390g","catId":"mnztq70q42l2"},
+      {"id":"mnztx5dgckzh","code":"PN-ES-HHS-1","name":"Herbal Harmony Sachet - 30s","catId":"mnztwdo8t4t8"},
+      {"id":"mnztx5dgs19r","code":"PN-ES-GKSB-1","name":"Grapefruit Kombucha Slimming - 360g","catId":"mnztq70q42l2"},
+      {"id":"mnztx5dgpfmd","code":"PN-ES-DLB-1","name":"Daily Longevity Blend - Lemon Grape","catId":"mnztq70q42l2"},
+      {"id":"mnztx5dg95m0","code":"PN-ES-MCPM-1","name":"Marine Collagen Peptides Matcha - 300g","catId":"mnztw54fn415"},
+      {"id":"mnztx5dg3tzk","code":"PN-ES-LKSB-1","name":"Lemon & Kombucha Slimming Blend","catId":"mnztq70q42l2"},
+      {"id":"mnztx5dgincp","code":"PN-ES-DPM-1","name":"Daily Pre+Probiotic Melts","catId":"mnztq70qunxn"},
+      {"id":"mnztx5dgk72m","code":"PN-ES-FCPM-1","name":"Feminine Care Probiotic Melts","catId":"mnztq70qunxn"},
+      {"id":"mnztx5dgfr4b","code":"PN-ES-SGPM-1","name":"Skin Glow Probiotic Melts","catId":"mnztq70qunxn"},
+      {"id":"mnztx5dgzxdh","code":"PN-ES-LBPM-1","name":"Lean Burn Probiotic Melts","catId":"mnztq70qunxn"},
+      {"id":"mnztx5dgx59c","code":"PN-ES-CHPM-1","name":"Cycle Harmony Probiotic Melts","catId":"mnztq70qunxn"},
+      {"id":"mnztx5dg15v3","code":"PN-ES-SSPM-1","name":"Skin Snow Probiotic Melts","catId":"mnztq70qunxn"},
+      {"id":"mnztx5dgzr40","code":"PN-ES-IPM-1","name":"Immunity Pre+probiotic Melts","catId":"mnztq70qunxn"},
+      {"id":"mnztx5dgbxzj","code":"PN-ES-JPM-1","name":"Joint Pre+probiotic Melts","catId":"mnztq70qunxn"},
+      {"id":"mnztx5dg0ful","code":"PN-ES-DBD-1","name":"Daily Bone+ Drops","catId":"mnztw0nbiv8t"},
+      {"id":"mnztx5dgro58","code":"PN-ES-PEH-2","name":"Purest Electrolyte Hydration","catId":"mnztwkwflme3"},
+      {"id":"mnztx5dgojas","code":"PN-ES-CWPIC-15","name":"Clear Whey Protein Isolate with Collagen","catId":"mnztq70quxh9"},
+      {"id":"mnztx5dgaitq","code":"PN-ES-OMB-1","name":"Vegan Omega-3 Mango Burstlets","catId":"mnztwwwfrvrf"},
+      {"id":"mnzu05n8y3ik","code":"PN-SB-LTME-30","name":"Lemon Tea Metabolic Elixir","catId":"mnztq70quxh9"},
+      {"id":"mnzu0az6dec6","code":"PN-SB-SKO-30","name":"Superdetox Kiwi Orange","catId":"mnztq70quxh9"},
+      {"id":"mnzu0iqrj8k6","code":"PN-SB-LTME-15","name":"Lemon Tea Metabolic Elixir","catId":"mnztq70q8d3q"},
+      {"id":"mnzu0q1vn5ch","code":"PN-SB-SKO-15","name":"Superdetox Kiwi Orange","catId":"mnztq70q8d3q"}
+    ];
+    saveDB();
+  }
+}
+
+// ── EXPORT CSV ───────────────────────────────────────────────────────────────
+function exportCSV() {
+  const rows = [['SKU Code','Product Name','Category','Qty/Ctn']];
+  SKUS.forEach(s => {
+    const cat = catById(s.catId);
+    rows.push([s.code, s.name, cat ? cat.name : '', cat ? cat.qty : '']);
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'PurestNest_SKU_Database.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── IMPORT CSV ───────────────────────────────────────────────────────────────
+// Expected columns: SKU Code | Product Name | Category Name
+// (Qty/Ctn column is optional and ignored — it is read from the Category definition)
+function importCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const text = e.target.result.replace(/^\uFEFF/, ''); // strip BOM
+      const lines = text.trim().split('\n').filter(l => l.trim());
+      let added = 0, dupes = 0, skipped = 0;
+
+      lines.forEach(line => {
+        // Parse CSV columns (handles quoted values)
+        const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+        if (!cols[0]) return;
+        if (isHeader(cols)) return; // skip header row
+
+        const code    = cols[0].trim();
+        const name    = cols[1] ? cols[1].trim() : '';
+        const catName = cols[2] ? cols[2].trim() : '';
+
+        if (!code || !name) { skipped++; return; }
+
+        // Skip duplicate SKU codes
+        if (SKUS.find(s => s.code.toUpperCase() === code.toUpperCase())) { dupes++; return; }
+
+        // Match category by name (case-insensitive)
+        const matchedCat = CATS.find(c => c.name.trim().toLowerCase() === catName.toLowerCase());
+
+        SKUS.push({ id: uid(), code, name, catId: matchedCat ? matchedCat.id : '' });
+        added++;
+      });
+
+      saveDB();
+      renderSKMTables();
+      let msg = `Import complete!\n✅ ${added} SKU${added !== 1 ? 's' : ''} added.`;
+      if (dupes)   msg += `\n⚠ ${dupes} skipped (duplicate code).`;
+      if (skipped) msg += `\n⚠ ${skipped} skipped (missing code or name).`;
+      alert(msg);
+    } catch(err) {
+      alert('Could not read file. Make sure it is a valid CSV with columns: SKU Code, Product Name, Category.');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+function saveDB() {
+  localStorage.setItem('pn_cats', JSON.stringify(CATS));
+  localStorage.setItem('pn_skus', JSON.stringify(SKUS));
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// Lookups
+function catById(id)   { return CATS.find(c=>c.id===id); }
+function skuByCode(code){ return SKUS.find(s=>s.code.trim().toUpperCase()===code.trim().toUpperCase()); }
+function catName(id)   { const c=catById(id); return c?c.name:''; }
+function catQty(id)    { const c=catById(id); return c?c.qty:0; }
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function switchTab(t) {
+  ['ci','pl','cl','skm'].forEach(x => {
+    document.getElementById('panel-'+x).classList.remove('show');
+    document.getElementById('tab-'+x).className = 'tab';
+  });
+  document.getElementById('panel-'+t).classList.add('show');
+  document.getElementById('tab-'+t).className = 'tab active-'+t;
+  if (t==='skm') renderSKMTables();
+}
+
+// ══════════════════════════════════════════
+// SKU MANAGER
+// ══════════════════════════════════════════
+function renderSKMTables() {
+  renderCatTable();
+  renderSKUTable();
+  refreshCatDropdown('sku-cat');
+}
+
+function renderCatTable() {
+  const tbody = document.getElementById('cat-body');
+  tbody.innerHTML = '';
+  document.getElementById('cat-empty').style.display = CATS.length ? 'none' : 'block';
+  CATS.forEach((c,i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align:center;color:#a0aec0;font-size:11px">${i+1}</td>
+      <td><input type="text" value="${xe(c.name)}" onchange="updateCat('${c.id}','name',this.value)"></td>
+      <td><input type="number" value="${c.qty}" min="1" style="width:80px" onchange="updateCat('${c.id}','qty',this.value)"></td>
+      <td><button class="btn-del" onclick="deleteCat('${c.id}')">×</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderSKUTable() {
+  const tbody = document.getElementById('sku-body');
+  tbody.innerHTML = '';
+  document.getElementById('sku-empty').style.display = SKUS.length ? 'none' : 'block';
+  SKUS.forEach((s,i) => {
+    const tr = document.createElement('tr');
+    const catOpts = CATS.map(c=>`<option value="${c.id}"${c.id===s.catId?' selected':''}>${xe(c.name)}</option>`).join('');
+    tr.innerHTML = `
+      <td style="text-align:center;color:#a0aec0;font-size:11px">${i+1}</td>
+      <td><input type="text" value="${xe(s.code)}" onchange="updateSKU('${s.id}','code',this.value)"></td>
+      <td><input type="text" value="${xe(s.name)}" onchange="updateSKU('${s.id}','name',this.value)"></td>
+      <td><select onchange="updateSKU('${s.id}','catId',this.value)"><option value="">— Select —</option>${catOpts}</select></td>
+      <td><button class="btn-del" onclick="deleteSKU('${s.id}')">×</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function refreshCatDropdown(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    CATS.map(c=>`<option value="${c.id}">${xe(c.name)}</option>`).join('');
+  sel.value = cur;
+}
+
+function saveCategory() {
+  const name = document.getElementById('cat-name').value.trim();
+  const qty  = parseInt(document.getElementById('cat-qty').value) || 0;
+  if (!name) { alert('Please enter a category name.'); return; }
+  if (!qty)  { alert('Please enter a default Qty/Ctn.'); return; }
+  CATS.push({ id: uid(), name, qty });
+  saveDB();
+  document.getElementById('cat-name').value = '';
+  document.getElementById('cat-qty').value  = '';
+  renderSKMTables();
+}
+
+function updateCat(id, field, val) {
+  const c = catById(id);
+  if (!c) return;
+  c[field] = field==='qty' ? (parseInt(val)||0) : val;
+  saveDB();
+  refreshCatDropdown('sku-cat');
+  refreshCatDropdown('cl-cat-inline'); // update label tab if visible
+}
+
+function deleteCat(id) {
+  if (!confirm('Delete this category? SKUs using it will lose their category.')) return;
+  CATS = CATS.filter(c=>c.id!==id);
+  SKUS.forEach(s=>{ if(s.catId===id) s.catId=''; });
+  saveDB();
+  renderSKMTables();
+}
+
+function saveSKU() {
+  const code  = document.getElementById('sku-code').value.trim();
+  const name  = document.getElementById('sku-name').value.trim();
+  const catId = document.getElementById('sku-cat').value;
+  if (!code) { alert('Please enter a SKU code.'); return; }
+  if (!name) { alert('Please enter a product name.'); return; }
+  if (SKUS.find(s=>s.code.toUpperCase()===code.toUpperCase())) {
+    alert('A SKU with this code already exists.'); return;
+  }
+  SKUS.push({ id: uid(), code, name, catId });
+  saveDB();
+  document.getElementById('sku-code').value = '';
+  document.getElementById('sku-name').value = '';
+  document.getElementById('sku-cat').value  = '';
+  renderSKMTables();
+}
+
+// Bulk paste handler for SKUs
+function setupSKUBulkPaste() {
+  document.getElementById('sku-bulk-paste').addEventListener('paste', e => {
+    e.preventDefault();
+    const txt = (e.clipboardData||window.clipboardData).getData('text');
+    const lines = txt.trim().split('\n').filter(l=>l.trim());
+    let added = 0, skipped = 0, dupes = 0;
+
+    lines.forEach(line => {
+      const cols = line.split('\t').map(c=>c.trim());
+      if (!cols[0]) return;
+      // Skip header rows
+      if (isHeader(cols)) return;
+
+      const code    = cols[0] || '';
+      const name    = cols[1] || '';
+      const catName = cols[2] || '';
+
+      if (!code || !name) { skipped++; return; }
+
+      // Check for duplicates
+      if (SKUS.find(s=>s.code.toUpperCase()===code.toUpperCase())) { dupes++; return; }
+
+      // Match category by name (case-insensitive)
+      const matchedCat = CATS.find(c=>c.name.trim().toLowerCase()===catName.trim().toLowerCase());
+      const catId = matchedCat ? matchedCat.id : '';
+
+      SKUS.push({ id: uid(), code, name, catId });
+      added++;
+    });
+
+    saveDB();
+    renderSKMTables();
+    e.target.value = '';
+
+    // Summary feedback
+    let msg = `✅ ${added} SKU${added!==1?'s':''} added!`;
+    if (dupes)   msg += `  ${dupes} skipped (duplicate code).`;
+    if (skipped) msg += `  ${skipped} skipped (missing code or name).`;
+    e.target.placeholder = msg;
+  });
+}
+
+function updateSKU(id, field, val) {
+  const s = SKUS.find(x=>x.id===id);
+  if (s) { s[field] = val; saveDB(); }
+}
+
+function deleteSKU(id) {
+  if (!confirm('Delete this SKU?')) return;
+  SKUS = SKUS.filter(s=>s.id!==id);
+  saveDB();
+  renderSKMTables();
+}
+
+// ══════════════════════════════════════════
+// AUTO-DETECT (CI / PL)
+// ══════════════════════════════════════════
+function autoDetect(p) {
+  const v = document.getElementById(p+'-inv').value.toUpperCase();
+  let c = '';
+  if (v.includes('PNSGPH')) c='PH'; else if (v.includes('PNSGMY')) c='MY'; else if (v.includes('PNSGAUS')) c='AUS';
+  if (c) { document.getElementById(p+'-ctry').value=c; fillConsignee(p); document.getElementById(p+'-ctry-badge').innerHTML='<span class="badge">✓ auto</span>'; }
+  const m = v.match(/-(\d{8})/);
+  if (m) { const r=m[1], ds=r.slice(0,4)+'-'+r.slice(4,6)+'-'+r.slice(6,8); if(!isNaN(new Date(ds).getTime())){ document.getElementById(p+'-date').value=ds; document.getElementById(p+'-date-badge').innerHTML='<span class="badge">✓ auto</span>'; } }
+}
+
+function fillConsignee(p) {
+  const c=document.getElementById(p+'-ctry').value, box=document.getElementById(p+'-consignee');
+  if (!c) { box.innerHTML='Select a country or type an invoice number to auto-fill.'; return; }
+  const d=CONS[c]; let h='';
+  if (d.buyer) h+=`<strong>Buyer:</strong> ${d.buyer}<br>`;
+  h+=`<strong>Ship To:</strong> ${d.shipTo}`;
+  if (d.contact) h+=`<br><strong>Contact:</strong> ${d.contact}`;
+  if (d.recv)    h+=`<br><strong>Receiving:</strong> ${d.recv}`;
+  box.innerHTML=h;
+}
+
+// ══════════════════════════════════════════
+// PASTE HELPERS
+// ══════════════════════════════════════════
+function isHeader(cols) {
+  const joined = cols.slice(0,6).join(' ');
+  const hasHeaderWords = /^(pallet|item|sku|desc|qty|quantity|price|ctn|carton|net|gross|ref|no\.?|weight|code|product)/i.test(joined);
+  const hasAnyNumber = cols.some(c => !isNaN(parseFloat(c)) && c.trim() !== '');
+  return hasHeaderWords && !hasAnyNumber;
+}
+
+function setupPaste(id, fn) {
+  document.getElementById(id).addEventListener('paste', e => {
+    e.preventDefault();
+    const txt=(e.clipboardData||window.clipboardData).getData('text');
+    const lines=txt.trim().split('\n').filter(l=>l.trim());
+    let n=0;
+    lines.forEach(line => {
+      const cols=line.split('\t').map(c=>c.trim());
+      if(isHeader(cols)||cols.every(c=>!c)) return;
+      fn(cols); n++;
+    });
+    e.target.value='';
+    if(n) e.target.placeholder=`✅ ${n} row${n>1?'s':''} added! Paste again to append.`;
+  });
+}
+
+// ══════════════════════════════════════════
+// CI
+// ══════════════════════════════════════════
+function addCI(d={}, flash=false) {
+  const tb=document.getElementById('ci-body'), i=tb.rows.length+1, tr=document.createElement('tr');
+  const q=parseFloat(d.qty)||0, p=parseFloat(d.price)||0;
+  tr.innerHTML=`<td style="text-align:center;color:#a0aec0;font-size:11px">${i}</td>
+    <td><input type="text" value="${xe(d.desc||'')}" oninput="calcCI()"></td>
+    <td><input type="number" value="${d.qty||''}" min="0" oninput="calcCI();ciT(this)"></td>
+    <td><input type="number" value="${d.price||''}" step="0.01" oninput="calcCI();ciT(this)"></td>
+    <td class="rtotal">${q&&p?fm(q*p):'—'}</td>
+    <td><button class="btn-del" onclick="this.closest('tr').remove();rn('ci-body');calcCI()">×</button></td>`;
+  if(flash) tr.classList.add('flash');
+  tb.appendChild(tr); calcCI();
+}
+function ciT(el){ const ins=el.closest('tr').querySelectorAll('input'),v=(parseFloat(ins[1].value)||0)*(parseFloat(ins[2].value)||0); el.closest('tr').querySelector('.rtotal').textContent=v?fm(v):'—'; }
+function calcCI(){ const r=getCIR(); document.getElementById('ci-ti').textContent=r.length; document.getElementById('ci-tq').textContent=r.reduce((s,x)=>s+x.qty,0); document.getElementById('ci-tv').textContent='SGD '+fm(r.reduce((s,x)=>s+x.total,0)); }
+function getCIR(){ return[...document.querySelectorAll('#ci-body tr')].map(tr=>{ const i=tr.querySelectorAll('input'),q=parseFloat(i[1].value)||0,p=parseFloat(i[2].value)||0; return{desc:i[0].value.trim(),qty:q,price:p,total:q*p}; }); }
+
+// ══════════════════════════════════════════
+// PL
+// ══════════════════════════════════════════
+function addPL(d={}, flash=false) {
+  const tb=document.getElementById('pl-body'), i=tb.rows.length+1, tr=document.createElement('tr');
+  const c=parseFloat(d.ctn)||0,n=parseFloat(d.net)||0,g=parseFloat(d.gross)||0;
+  tr.innerHTML=`<td style="text-align:center;color:#a0aec0;font-size:11px">${i}</td>
+    <td><input type="text" value="${xe(d.pallet||'')}" style="width:50px" oninput="calcPL()"></td>
+    <td><input type="text" value="${xe(d.code||'')}"   style="width:60px" oninput="calcPL()"></td>
+    <td><input type="text" value="${xe(d.desc||'')}"   oninput="calcPL()"></td>
+    <td><input type="number" value="${d.ctn||''}"   min="0" style="width:40px" oninput="calcPL()"></td>
+    <td><input type="number" value="${d.qty||''}"   min="0" style="width:48px" oninput="calcPL()"></td>
+    <td><input type="number" value="${d.net||''}"   step="0.001" style="width:66px" oninput="calcPL()"></td>
+    <td><input type="number" value="${d.gross||''}" step="0.001" style="width:70px" oninput="calcPL()"></td>
+    <td class="rtotal">${c&&n?(c*n).toFixed(3):'—'}</td>
+    <td class="rtotal">${c&&g?(c*g).toFixed(3):'—'}</td>
+    <td><button class="btn-del" onclick="this.closest('tr').remove();rn('pl-body');calcPL()">×</button></td>`;
+  if(flash) tr.classList.add('flash');
+  tb.appendChild(tr); calcPL();
+}
+function calcPL(){ const r=getPLR(); document.getElementById('pl-ti').textContent=r.length; document.getElementById('pl-tc').textContent=r.reduce((s,x)=>s+x.ctn,0); document.getElementById('pl-tq').textContent=r.reduce((s,x)=>s+x.qty,0); document.getElementById('pl-tn').textContent=r.reduce((s,x)=>s+x.tN,0).toFixed(3); document.getElementById('pl-tg').textContent=r.reduce((s,x)=>s+x.tG,0).toFixed(3); }
+function getPLR(){ return[...document.querySelectorAll('#pl-body tr')].map(tr=>{ const i=tr.querySelectorAll('input'),c=parseFloat(i[3].value)||0,n=parseFloat(i[5].value)||0,g=parseFloat(i[6].value)||0; return{pallet:i[0].value.trim(),code:i[1].value.trim(),desc:i[2].value.trim(),qty:parseFloat(i[4].value)||0,ctn:c,net:n,gross:g,tN:c*n,tG:c*g}; }); }
+
+// ══════════════════════════════════════════
+// CARTON LABELS
+// ══════════════════════════════════════════
+function catDropdownHTML(selectedCatId) {
+  return '<option value="">— Select —</option>' +
+    CATS.map(c=>`<option value="${c.id}"${c.id===selectedCatId?' selected':''}>${xe(c.name)}</option>`).join('') +
+    `<option value="__custom__"${selectedCatId==='__custom__'?' selected':''}>Other (custom)</option>`;
+}
+
+function addCL(d={}, flash=false) {
+  const tb=document.getElementById('cl-body'), i=tb.rows.length+1, tr=document.createElement('tr');
+  // Look up SKU if code provided
+  let resolvedCatId = d.catId || '';
+  let resolvedQty   = d.qty   || '';
+  let matched       = false;
+  if (d.skuCode) {
+    const found = skuByCode(d.skuCode);
+    if (found) { resolvedCatId = found.catId; resolvedQty = catQty(found.catId) || resolvedQty; matched = true; }
+  }
+  if (!resolvedQty && resolvedCatId) resolvedQty = catQty(resolvedCatId);
+
+  const matchTag = d.skuCode
+    ? (matched
+        ? `<span class="tag-matched">✓ matched</span>`
+        : `<span class="tag-unmatched">! not found</span>`)
+    : '';
+
+  tr.innerHTML=`
+    <td style="text-align:center;color:#a0aec0;font-size:11px">${i}</td>
+    <td><input type="text" value="${xe(d.skuCode||'')}" placeholder="SKU" style="width:80px" oninput="clSKUChange(this)">${matchTag}</td>
+    <td><input type="text" value="${xe(d.name||'')}" placeholder="Item name"></td>
+    <td><select onchange="clCatChange(this)">${catDropdownHTML(resolvedCatId)}</select></td>
+    <td><input type="number" class="cl-qty" value="${resolvedQty}" min="1" placeholder="e.g. 10"></td>
+    <td><input type="number" class="cl-ctns" value="${d.totalQty||''}" min="1" placeholder="e.g. 285"></td>
+    <td><button class="btn-del" onclick="this.closest('tr').remove();rn('cl-body')">×</button></td>`;
+  if(flash) tr.classList.add('flash');
+  tb.appendChild(tr);
+}
+
+// Live SKU lookup when user types into SKU field
+function clSKUChange(input) {
+  const tr    = input.closest('tr');
+  const code  = input.value.trim();
+  const found = skuByCode(code);
+  // Remove old tag
+  const oldTag = input.parentElement.querySelector('.tag-matched, .tag-unmatched');
+  if (oldTag) oldTag.remove();
+  if (!code) return;
+  // Add new tag
+  const tag = document.createElement('span');
+  if (found) {
+    tag.className = 'tag-matched'; tag.textContent = '✓ matched';
+    // Fill name if empty
+    const nameInput = tr.querySelectorAll('input')[1];
+    if (!nameInput.value) nameInput.value = found.name;
+    // Fill category
+    const catSel = tr.querySelector('select');
+    catSel.innerHTML = catDropdownHTML(found.catId);
+    // Fill qty/ctn
+    tr.querySelector('.cl-qty').value = catQty(found.catId) || '';
+  } else {
+    tag.className = 'tag-unmatched'; tag.textContent = '! not found';
+  }
+  input.parentElement.appendChild(tag);
+}
+
+function clCatChange(sel) {
+  const tr      = sel.closest('tr');
+  const qtyInput = tr.querySelector('.cl-qty');
+  if (sel.value === '__custom__') { qtyInput.value = ''; qtyInput.focus(); }
+  else { const q = catQty(sel.value); if (q) qtyInput.value = q; }
+}
+
+function getCLRows() {
+  const sharedPO  = document.getElementById('cl-po').value.trim();
+  const sharedLoc = document.getElementById('cl-loc').value;
+  return [...document.querySelectorAll('#cl-body tr')].map(tr=>{
+    const ins    = tr.querySelectorAll('input');
+    const catSel = tr.querySelector('select');
+    const qty      = parseInt(ins[2].value)||0;  // cl-qty
+    const totalQty = parseInt(ins[3].value)||0;  // cl-ctns
+    const fullCtns = qty>0 ? Math.floor(totalQty/qty) : 0;
+    const looseQty = qty>0 ? totalQty%qty : 0;
+    const totalCtns= fullCtns+(looseQty>0?1:0);
+    return {
+      skuCode: ins[0].value.trim(),
+      name:    ins[1].value.trim(),
+      catId:   catSel ? catSel.value : '',
+      qty, totalQty, fullCtns, looseQty, totalCtns,
+      po:  sharedPO,
+      loc: sharedLoc
+    };
+  });
+}
+
+// ══════════════════════════════════════════
+// PALLETS
+// ══════════════════════════════════════════
+let pc=0;
+function addPallet(){ pc++; const n=pc, div=document.createElement('div'); div.className='pallet-row'; div.innerHTML=`<label>Pallet ${n}</label><input type="text" placeholder="L (cm)" style="width:80px"><span style="color:#a0aec0">×</span><input type="text" placeholder="W (cm)" style="width:80px"><span style="color:#a0aec0">×</span><input type="text" placeholder="H (cm)" style="width:80px"><button class="btn-del" onclick="this.parentElement.remove()">×</button>`; document.getElementById('pallets').appendChild(div); }
+function getPallets(){ return[...document.querySelectorAll('#pallets .pallet-row')].map((div,i)=>{ const ins=div.querySelectorAll('input'); return{num:i+1,l:ins[0].value||'?',w:ins[1].value||'?',h:ins[2].value||'?'}; }); }
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function rn(id){ document.querySelectorAll('#'+id+' tr').forEach((tr,i)=>tr.cells[0].textContent=i+1); }
+function clearTbl(p){ if(confirm('Clear all items?')){ document.getElementById(p+'-body').innerHTML=''; if(p==='ci')calcCI(); else if(p==='pl')calcPL(); } }
+function xe(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+function fm(n){ return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function fmtDate(v){ if(!v)return''; const d=new Date(v+'T00:00:00'); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase(); }
+
+// ══════════════════════════════════════════
+// PDF HEADER
+// ══════════════════════════════════════════
+function buildPDFHeader(doc, title, prefix) {
+  const ml=14, mr=196, W=210; let y=14;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('Purest Nest Pte Ltd', W/2, y, {align:'center'}); y+=5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(8);
+  doc.text('Office Address: 1008 Toa Payoh North #03-18, Singapore 318996', W/2, y, {align:'center'}); y+=4.5;
+  doc.text('Warehouse Address: 8 Pandan Crescent, #02-01, Singapore 128464', W/2, y, {align:'center'}); y+=4.5;
+  doc.text('UEN 201909055C', W/2, y, {align:'center'}); y+=7;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text(title, W/2, y, {align:'center'});
+  const tw=doc.getTextWidth(title);
+  doc.line(W/2-tw/2, y+1, W/2+tw/2, y+1); y+=8;
+  const inv  = document.getElementById(prefix+'-inv').value||'—';
+  const date = fmtDate(document.getElementById(prefix+'-date').value);
+  const ctry = document.getElementById(prefix+'-ctry').value;
+  const dest = ctry?CONS[ctry].label:'—';
+  doc.setFontSize(10);
+  doc.text('Invoice No.: '+inv, ml, y); doc.text('Date: '+date, mr, y, {align:'right'}); y+=6;
+  doc.text('FROM: SINGAPORE', ml, y); doc.text('TO: '+dest, mr, y, {align:'right'}); y+=6;
+  if (ctry) {
+    const d=CONS[ctry], half=(mr-ml)/2, leftX=ml, rightX=ml+half+4, colW=half-4;
+    let blockY=y, shipY=y;
+    if (d.buyer) {
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+      doc.text('Buyer:', leftX, blockY); blockY+=4.5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      doc.splitTextToSize(d.buyer, colW).forEach(ln=>{ doc.text(ln,leftX,blockY); blockY+=4; });
+      shipY=y;
+    }
+    const shipX=d.buyer?rightX:leftX, shipW=d.buyer?colW:mr-ml;
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    doc.text('Ship To:', shipX, shipY); shipY+=4.5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.splitTextToSize(d.shipTo, shipW).forEach(ln=>{ doc.text(ln,shipX,shipY); shipY+=4; });
+    if (d.contact) { doc.splitTextToSize('Contact: '+d.contact, shipW).forEach(ln=>{ doc.text(ln,shipX,shipY); shipY+=4; }); }
+    if (d.recv)    { doc.text('Receiving: '+d.recv, shipX, shipY); shipY+=4; }
+    y=Math.max(blockY,shipY)+4;
+    doc.setDrawColor(200,200,200); doc.line(ml,y-2,mr,y-2); doc.setDrawColor(0,0,0); y+=2;
+  }
+  return {doc,y,ml,mr,W};
+}
+
+// ══════════════════════════════════════════
+// GENERATE CI
+// ══════════════════════════════════════════
+function genCI() {
+  const ctry=document.getElementById('ci-ctry').value;
+  if(!ctry){alert('Please select a destination country.');return;}
+  const rows=getCIR(); if(!rows.length){alert('Please add at least one item.');return;}
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const {y,ml,mr}=buildPDFHeader(doc,'COMMERCIAL INVOICE','ci');
+  const tQ=rows.reduce((s,r)=>s+r.qty,0), tV=rows.reduce((s,r)=>s+r.total,0);
+  const body=rows.map((r,i)=>[i+1,r.desc,r.qty,r.price.toFixed(2),fm(r.total)]);
+  body.push(['',{content:`TOTAL (${rows.length} items)`,styles:{fontStyle:'bold'}},{content:tQ,styles:{fontStyle:'bold',halign:'center'}},'',{content:fm(tV),styles:{fontStyle:'bold',halign:'right'}}]);
+  doc.autoTable({ startY:y+4, head:[['Item','Item Description','Quantity','Unit Price (SGD)','Total Price (SGD)']], body, styles:{fontSize:8.5,cellPadding:3}, headStyles:{fillColor:[45,55,72],halign:'center',fontStyle:'bold',fontSize:8}, columnStyles:{0:{halign:'center',cellWidth:12},1:{cellWidth:'auto'},2:{halign:'center',cellWidth:24},3:{halign:'right',cellWidth:34},4:{halign:'right',cellWidth:38}}, alternateRowStyles:{fillColor:[247,250,252]} });
+  doc.save(`CommercialInvoice_${document.getElementById('ci-inv').value||'CI'}.pdf`);
+}
+
+// ══════════════════════════════════════════
+// GENERATE PL
+// ══════════════════════════════════════════
+function genPL() {
+  const ctry=document.getElementById('pl-ctry').value;
+  if(!ctry){alert('Please select a destination country.');return;}
+  const rows=getPLR(); if(!rows.length){alert('Please add at least one item.');return;}
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const {y,ml}=buildPDFHeader(doc,'PACKING LIST','pl');
+  const tC=rows.reduce((s,r)=>s+r.ctn,0),tQ=rows.reduce((s,r)=>s+r.qty,0),tN=rows.reduce((s,r)=>s+r.tN,0),tG=rows.reduce((s,r)=>s+r.tG,0);
+  const body=rows.map((r,i)=>[i+1,r.pallet,r.code,r.desc,r.ctn,r.qty,r.net.toFixed(3),r.gross.toFixed(3),r.tN.toFixed(3),r.tG.toFixed(3)]);
+  body.push(['','','',{content:'TOTAL',styles:{fontStyle:'bold'}},{content:tC,styles:{fontStyle:'bold',halign:'center'}},{content:tQ,styles:{fontStyle:'bold',halign:'center'}},'','',{content:tN.toFixed(3),styles:{fontStyle:'bold',halign:'right'}},{content:tG.toFixed(3),styles:{fontStyle:'bold',halign:'right'}}]);
+  doc.autoTable({ startY:y+4, head:[['#','Pallet\nNo.','Item\nCode','Item Description','CTN','Qty','Net Wt\n(KGM)','Gross Wt\n(KGM)','Total Net\nWt','Total Gross\nWt']], body, styles:{fontSize:7.5,cellPadding:2.5,overflow:'linebreak'}, headStyles:{fillColor:[45,55,72],halign:'center',fontStyle:'bold',fontSize:7}, columnStyles:{0:{halign:'center',cellWidth:8},1:{halign:'center',cellWidth:14},2:{halign:'center',cellWidth:15},3:{cellWidth:'auto'},4:{halign:'center',cellWidth:11},5:{halign:'center',cellWidth:12},6:{halign:'right',cellWidth:18},7:{halign:'right',cellWidth:19},8:{halign:'right',cellWidth:19},9:{halign:'right',cellWidth:20}}, alternateRowStyles:{fillColor:[247,250,252]} });
+  let fy=doc.lastAutoTable.finalY+8;
+  const ps=getPallets();
+  if(ps.length){ doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text(`SAY TOTAL: ${ps.length} Pallet${ps.length>1?'s':''} ONLY`,ml,fy); fy+=5; doc.text('Dimension of pallet & weight',ml,fy); fy+=5; doc.setFont('helvetica','normal'); ps.forEach(p=>{doc.text(`Pallet ${p.num}: ${p.l}cm(L)*${p.w}cm(W)*${p.h}cm(H)`,ml,fy); fy+=5;}); }
+  doc.save(`PackingList_${document.getElementById('pl-inv').value||'PL'}.pdf`);
+}
+
+// ══════════════════════════════════════════
+// GENERATE CARTON LABELS
+// ══════════════════════════════════════════
+function genLabels() {
+  const po  = document.getElementById('cl-po').value.trim();
+  const loc = document.getElementById('cl-loc').value;
+  if (!po)  { alert('Please enter a PO No.'); return; }
+  if (!loc) { alert('Please select a Delivery Location.'); return; }
+  const rows = getCLRows().filter(r=>r.name&&r.qty&&r.totalQty);
+  if (!rows.length) { alert('Please add at least one item with name, qty/ctn and total qty.'); return; }
+  const doc = new jsPDF({unit:'mm',format:[100,150],orientation:'portrait'});
+  let first = true;
+  const grandTotal = rows.reduce((s,r)=>s+r.totalCtns,0);
+  let counter = 0;
+  rows.forEach(r=>{
+    for(let c=1;c<=r.totalCtns;c++){
+      if(!first) doc.addPage([100,150]);
+      first=false; counter++;
+      const isLast  = c===r.totalCtns;
+      const labelQty= (isLast&&r.looseQty>0) ? r.looseQty : r.qty;
+      drawLabel(doc, r, counter, grandTotal, labelQty);
+    }
+  });
+  doc.save(`CartonLabels_${po||'PN'}.pdf`);
+}
+
+function drawLabel(doc, r, num, grandTotal, labelQty) {
+  const W=100, ml=5, mr=95;
+  doc.setFillColor(45,55,72); doc.rect(0,0,W,26,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text('PUREST NEST', W/2, 17, {align:'center'});
+  doc.setTextColor(0,0,0);
+  const rowDefs=[
+    {label:'ITEM NAME',        value: r.name},
+    {label:'PO NO.',           value: r.po||'—'},
+    {label:'DELIVERY LOCATION',value: r.loc||'—'},
+  ];
+  let y=28;
+  rowDefs.forEach((row,i)=>{
+    if(i>0){doc.setDrawColor(210,210,210);doc.line(ml,y,mr,y);}
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(130,130,130);
+    doc.text(row.label,ml+2,y+6);
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(26,32,44);
+    const lines=doc.splitTextToSize(row.value,mr-ml-4);
+    doc.text(lines,ml+2,y+14);
+    y+=lines.length>1?20:18;
+  });
+  doc.setDrawColor(210,210,210); doc.line(ml,y,mr,y); doc.line(W/2,y,W/2,148);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(130,130,130);
+  doc.text('QTY / CTN',ml+2,y+8);
+  doc.setFont('helvetica','bold');doc.setFontSize(28);doc.setTextColor(26,32,44);
+  doc.text(String(labelQty),ml+2,y+26);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(130,130,130);
+  doc.text('CARTON NO.',W/2+3,y+8);
+  doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(26,32,44);
+  doc.text(`${num} / ${grandTotal}`,W/2+3,y+26);
+}
+
+// ══════════════════════════════════════════
+// PASTE SETUP
+// ══════════════════════════════════════════
+setupPaste('ci-paste', cols=>{
+  let desc='',qty='',price='';
+  if(cols.length>=4&&!isNaN(parseFloat(cols[0]))&&isNaN(parseFloat(cols[1]))){desc=cols[1];qty=cols[2];price=cols[3];}
+  else{desc=cols[0]||'';qty=cols[1]||'';price=cols[2]||'';}
+  addCI({desc,qty,price},true);
+});
+
+setupPaste('pl-paste', cols=>addPL({pallet:cols[0],code:cols[1],desc:cols[2],ctn:cols[3],qty:cols[4],net:cols[5],gross:cols[6]},true));
+
+// Carton Labels paste: Col A=SKU, Col B=ProductCode(skip), Col C=Name, Col D=TotalQty
+setupPaste('cl-paste', cols=>{
+  const skuCode  = cols[0] || '';
+  const name     = cols[2] || '';  // Col C
+  const totalQty = cols[3] || '';  // Col D
+  addCL({ skuCode, name, totalQty }, true);
+});
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+loadDB();
+setupSKUBulkPaste();
+document.getElementById('ci-date').valueAsDate=new Date();
+document.getElementById('pl-date').valueAsDate=new Date();
+addPallet();
+addCL();
+</script>
+</body>
+</html>
