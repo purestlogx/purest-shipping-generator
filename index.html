@@ -750,7 +750,9 @@ function setupPaste(id, fn) {
     const lines=txt.trim().split('\n').filter(l=>l.trim());
     let n=0;
     lines.forEach(line => {
-      const cols=line.split('\t').map(c=>c.trim());
+      // Strip thousand-separator commas from numbers (e.g. 3,000 → 3000)
+      const cleaned = line.replace(/(\d),(\d)/g, '$1$2');
+      const cols=cleaned.split('\t').map(c=>c.trim());
       if(isHeader(cols)||cols.every(c=>!c)) return;
       fn(cols); n++;
     });
