@@ -63,7 +63,9 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
 .btn-del   { background: none; border: none; cursor: pointer; color: #fc8181; font-size: 16px; padding: 2px 5px; }
 .pallet-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
 .pallet-row label { font-size: 12px; font-weight: 600; color: #718096; min-width: 58px; }
-.pallet-row input { padding: 7px 10px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 13px; outline: none; width: 88px; }
+.pallet-row input { padding: 7px 10px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 13px; outline: none; }
+.pallet-row input.dim-combined { width: 160px; }
+.pallet-row input.dim-single { width: 80px; }
 .gen-section { padding: 20px 24px; }
 .btn-gen { padding: 13px 28px; border: none; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: 700; transition: all 0.2s; }
 .btn-ci-gen { background: linear-gradient(135deg,#667eea,#764ba2); color: white; }
@@ -221,8 +223,14 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
     </div>
     <div class="section">
       <h2>Pallet Dimensions</h2>
+      <div class="paste-hint" style="margin-bottom:10px;">💡 Enter dimensions as <strong>L*W*H</strong> in cm (e.g. 113*113*145). CBM is calculated automatically.</div>
       <div id="pallets"></div>
       <button class="btn-add" onclick="addPallet()">+ Add Pallet</button>
+      <div id="cbm-bar" style="display:none; margin-top:14px; background:#ebf8ff; border:1.5px solid #bee3f8; border-radius:8px; padding:10px 16px; font-size:13px; color:#2b6cb0;">
+        Total CBM: <strong id="cbm-total">0.000</strong> m³
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <span id="cbm-breakdown" style="font-size:12px; color:#4a5568;"></span>
+      </div>
     </div>
     <div class="gen-section">
       <button class="btn-gen btn-pl-gen" onclick="genPL()">⬇ Download Packing List (PDF)</button>
@@ -902,8 +910,49 @@ function getCLRows() {
 // PALLETS
 // ══════════════════════════════════════════
 let pc=0;
-function addPallet(){ pc++; const n=pc, div=document.createElement('div'); div.className='pallet-row'; div.innerHTML=`<label>Pallet ${n}</label><input type="text" placeholder="L (cm)" style="width:80px"><span style="color:#a0aec0">×</span><input type="text" placeholder="W (cm)" style="width:80px"><span style="color:#a0aec0">×</span><input type="text" placeholder="H (cm)" style="width:80px"><button class="btn-del" onclick="this.parentElement.remove()">×</button>`; document.getElementById('pallets').appendChild(div); }
-function getPallets(){ return[...document.querySelectorAll('#pallets .pallet-row')].map((div,i)=>{ const ins=div.querySelectorAll('input'); return{num:i+1,l:ins[0].value||'?',w:ins[1].value||'?',h:ins[2].value||'?'}; }); }
+function addPallet() {
+  pc++;
+  const n = pc;
+  const div = document.createElement('div');
+  div.className = 'pallet-row';
+  div.innerHTML = `
+    <label>Pallet ${n}</label>
+    <input type="text" style="width:180px" placeholder="e.g. 113*113*145" oninput="calcCBM()">
+    <button class="btn-del" onclick="this.parentElement.remove();calcCBM()">×</button>`;
+  document.getElementById('pallets').appendChild(div);
+  calcCBM();
+}
+
+function getPallets() {
+  return [...document.querySelectorAll('#pallets .pallet-row')].map((div, i) => {
+    const val = div.querySelector('input').value.trim();
+    const parts = val.split(/[*xX×\s]+/).map(v => v.trim());
+    return {
+      num: i + 1,
+      raw: val,
+      l: parts[0] || '?',
+      w: parts[1] || '?',
+      h: parts[2] || '?'
+    };
+  });
+}
+
+function calcCBM() {
+  const pallets = getPallets();
+  const valid = pallets.filter(p => parseFloat(p.l) && parseFloat(p.w) && parseFloat(p.h));
+  if (!valid.length) { document.getElementById('cbm-bar').style.display = 'none'; return; }
+
+  let total = 0;
+  const parts = valid.map(p => {
+    const cbm = (parseFloat(p.l) * parseFloat(p.w) * parseFloat(p.h)) / 1000000;
+    total += cbm;
+    return `Pallet ${p.num}: ${cbm.toFixed(3)} m³`;
+  });
+
+  document.getElementById('cbm-bar').style.display = 'block';
+  document.getElementById('cbm-total').textContent = total.toFixed(3);
+  document.getElementById('cbm-breakdown').textContent = parts.join('  |  ');
+}
 
 // ══════════════════════════════════════════
 // UTILS
@@ -990,7 +1039,35 @@ function genPL() {
   doc.autoTable({ startY:y+4, head:[['#','Pallet\nNo.','Item\nCode','Item Description','CTN','Qty','Net Wt\n(KGM)','Gross Wt\n(KGM)','Total Net\nWt','Total Gross\nWt']], body, styles:{fontSize:7.5,cellPadding:2.5,overflow:'linebreak'}, headStyles:{fillColor:[45,55,72],halign:'center',fontStyle:'bold',fontSize:7}, columnStyles:{0:{halign:'center',cellWidth:8},1:{halign:'center',cellWidth:14},2:{halign:'center',cellWidth:15},3:{cellWidth:'auto'},4:{halign:'center',cellWidth:11},5:{halign:'center',cellWidth:12},6:{halign:'right',cellWidth:18},7:{halign:'right',cellWidth:19},8:{halign:'right',cellWidth:19},9:{halign:'right',cellWidth:20}}, alternateRowStyles:{fillColor:[247,250,252]} });
   let fy=doc.lastAutoTable.finalY+8;
   const ps=getPallets();
-  if(ps.length){ doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text(`SAY TOTAL: ${ps.length} Pallet${ps.length>1?'s':''} ONLY`,ml,fy); fy+=5; doc.text('Dimension of pallet & weight',ml,fy); fy+=5; doc.setFont('helvetica','normal'); ps.forEach(p=>{doc.text(`Pallet ${p.num}: ${p.l}cm(L)*${p.w}cm(W)*${p.h}cm(H)`,ml,fy); fy+=5;}); }
+  if(ps.length){
+    doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text(`SAY TOTAL: ${ps.length} Pallet${ps.length>1?'s':''} ONLY`,ml,fy); fy+=5;
+    doc.text('Dimension of pallet & weight',ml,fy); fy+=5;
+    doc.setFont('helvetica','normal');
+    ps.forEach(p=>{ doc.text(`Pallet ${p.num}: ${p.l}cm(L)*${p.w}cm(W)*${p.h}cm(H)`,ml,fy); fy+=5; });
+
+    // CBM calculation
+    let totalCBM = 0;
+    const cbmLines = ps.map(p => {
+      const l = parseFloat(p.l), w = parseFloat(p.w), h = parseFloat(p.h);
+      if (l && w && h) {
+        const cbm = (l * w * h) / 1000000;
+        totalCBM += cbm;
+        return `Pallet ${p.num}: ${cbm.toFixed(3)} m³`;
+      }
+      return null;
+    }).filter(Boolean);
+
+    if (cbmLines.length) {
+      fy += 2;
+      doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      doc.text('Total CBM:', ml, fy); fy += 5;
+      doc.setFont('helvetica','normal');
+      cbmLines.forEach(line => { doc.text(line, ml, fy); fy += 5; });
+      doc.setFont('helvetica','bold');
+      doc.text(`TOTAL CBM: ${totalCBM.toFixed(3)} m³`, ml, fy);
+    }
+  }
   doc.save(`PackingList_${document.getElementById('pl-inv').value||'PL'}.pdf`);
 }
 
