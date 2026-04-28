@@ -249,15 +249,21 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
         </div>
         <div class="field">
           <label>Delivery Location</label>
-          <select id="cl-loc">
-            <option value="">— Select —</option>
-            <option value="MY-NJV">MY-NJV</option>
-            <option value="PH-INSPIRE">PH-INSPIRE</option>
-            <option value="AU-INVENCO">AU-INVENCO</option>
-            <option value="WATSONS">WATSONS</option>
-            <option value="GUARDIAN">GUARDIAN</option>
-            <option value="NTUC">NTUC</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="cl-loc" style="flex:1">
+              <option value="">— Select —</option>
+            </select>
+            <button class="btn-add" style="margin-top:0;white-space:nowrap;padding:8px 12px;" onclick="toggleLocEditor()">✏️ Edit</button>
+          </div>
+          <!-- Inline location editor -->
+          <div id="loc-editor" style="display:none;margin-top:10px;background:#f7fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:12px;">
+            <div style="font-size:11px;font-weight:600;color:#718096;margin-bottom:8px;">MANAGE LOCATIONS</div>
+            <div id="loc-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="loc-new-input" placeholder="Add new location..." style="flex:1;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" onkeydown="if(event.key==='Enter')addLocInline()">
+              <button class="btn-save" style="padding:7px 14px;" onclick="addLocInline()">+ Add</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -399,10 +405,33 @@ const CONS = {
 // In-memory DB — persisted to localStorage
 let CATS = []; // { id, name, qty }
 let SKUS = []; // { id, code, name, catId }
+let LOCS = []; // { id, name }
 
 function loadDB() {
+  // Version check — clear stale data if schema changed
+  const DB_VERSION = '2';
+  if (localStorage.getItem('pn_db_version') !== DB_VERSION) {
+    localStorage.removeItem('pn_cats');
+    localStorage.removeItem('pn_skus');
+    localStorage.removeItem('pn_locs');
+    localStorage.setItem('pn_db_version', DB_VERSION);
+  }
+
   try { CATS = JSON.parse(localStorage.getItem('pn_cats') || '[]'); } catch(e){ CATS=[]; }
   try { SKUS = JSON.parse(localStorage.getItem('pn_skus') || '[]'); } catch(e){ SKUS=[]; }
+  try { LOCS = JSON.parse(localStorage.getItem('pn_locs') || '[]'); } catch(e){ LOCS=[]; }
+
+  if (!LOCS.length) {
+    LOCS = [
+      { id: uid(), name: 'MY-NJV' },
+      { id: uid(), name: 'PH-INSPIRE' },
+      { id: uid(), name: 'AU-INVENCO' },
+      { id: uid(), name: 'WATSONS' },
+      { id: uid(), name: 'GUARDIAN' },
+      { id: uid(), name: 'NTUC' },
+    ];
+    saveDB();
+  }
 
   if (!CATS.length) {
     CATS = [
@@ -545,6 +574,7 @@ function importCSV(input) {
 function saveDB() {
   localStorage.setItem('pn_cats', JSON.stringify(CATS));
   localStorage.setItem('pn_skus', JSON.stringify(SKUS));
+  localStorage.setItem('pn_locs', JSON.stringify(LOCS));
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
@@ -716,6 +746,52 @@ function deleteSKU(id) {
   SKUS = SKUS.filter(s=>s.id!==id);
   saveDB();
   renderSKMTables();
+}
+
+// ── DELIVERY LOCATIONS (inline editor in Carton Labels tab) ──────────────────
+function refreshLocDropdown() {
+  const sel = document.getElementById('cl-loc');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    LOCS.map(l => `<option value="${xe(l.name)}">${xe(l.name)}</option>`).join('');
+  if (cur) sel.value = cur;
+  renderLocTags();
+}
+
+function renderLocTags() {
+  const container = document.getElementById('loc-tags');
+  if (!container) return;
+  container.innerHTML = LOCS.map(l => `
+    <span style="display:inline-flex;align-items:center;gap:4px;background:#edf2f7;border:1px solid #e2e8f0;border-radius:20px;padding:3px 10px;font-size:12px;color:#4a5568;">
+      ${xe(l.name)}
+      <button onclick="deleteLoc('${l.id}')" style="background:none;border:none;cursor:pointer;color:#fc8181;font-size:14px;line-height:1;padding:0 2px;">×</button>
+    </span>`).join('');
+}
+
+function toggleLocEditor() {
+  const ed = document.getElementById('loc-editor');
+  ed.style.display = ed.style.display === 'none' ? 'block' : 'none';
+  renderLocTags();
+}
+
+function addLocInline() {
+  const input = document.getElementById('loc-new-input');
+  const name = input.value.trim();
+  if (!name) return;
+  if (LOCS.find(l => l.name.toUpperCase() === name.toUpperCase())) {
+    alert('This location already exists.'); return;
+  }
+  LOCS.push({ id: uid(), name });
+  saveDB();
+  input.value = '';
+  refreshLocDropdown();
+}
+
+function deleteLoc(id) {
+  LOCS = LOCS.filter(l => l.id !== id);
+  saveDB();
+  refreshLocDropdown();
 }
 
 // ══════════════════════════════════════════
@@ -1154,6 +1230,7 @@ setupPaste('cl-paste', cols=>{
 // ══════════════════════════════════════════
 loadDB();
 setupSKUBulkPaste();
+refreshLocDropdown();
 document.getElementById('ci-date').valueAsDate=new Date();
 document.getElementById('pl-date').valueAsDate=new Date();
 addPallet();
