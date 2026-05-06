@@ -1113,14 +1113,31 @@ function genPL() {
   const body=rows.map((r,i)=>[i+1,r.pallet,r.code,r.desc,r.ctn,r.qty,r.net.toFixed(3),r.gross.toFixed(3),r.tN.toFixed(3),r.tG.toFixed(3)]);
   body.push(['','','',{content:'TOTAL',styles:{fontStyle:'bold'}},{content:tC,styles:{fontStyle:'bold',halign:'center'}},{content:tQ,styles:{fontStyle:'bold',halign:'center'}},'','',{content:tN.toFixed(3),styles:{fontStyle:'bold',halign:'right'}},{content:tG.toFixed(3),styles:{fontStyle:'bold',halign:'right'}}]);
   doc.autoTable({ startY:y+4, head:[['#','Pallet\nNo.','Item\nCode','Item Description','CTN','Qty','Net Wt\n(KGM)','Gross Wt\n(KGM)','Total Net\nWt','Total Gross\nWt']], body, styles:{fontSize:7.5,cellPadding:2.5,overflow:'linebreak'}, headStyles:{fillColor:[45,55,72],halign:'center',fontStyle:'bold',fontSize:7}, columnStyles:{0:{halign:'center',cellWidth:8},1:{halign:'center',cellWidth:14},2:{halign:'center',cellWidth:15},3:{cellWidth:'auto'},4:{halign:'center',cellWidth:11},5:{halign:'center',cellWidth:12},6:{halign:'right',cellWidth:18},7:{halign:'right',cellWidth:19},8:{halign:'right',cellWidth:19},9:{halign:'right',cellWidth:20}}, alternateRowStyles:{fillColor:[247,250,252]} });
-  let fy=doc.lastAutoTable.finalY+8;
-  const ps=getPallets();
-  if(ps.length){
+  let fy = doc.lastAutoTable.finalY + 8;
+  const PAGE_H = 287; // A4 height in mm with margin
+  const MARGIN_BOTTOM = 15;
+
+  // Helper: add new page if content would overflow
+  function checkPage(neededSpace) {
+    if (fy + neededSpace > PAGE_H - MARGIN_BOTTOM) {
+      doc.addPage();
+      fy = 14;
+    }
+  }
+
+  const ps = getPallets();
+  if (ps.length) {
+    checkPage(10);
     doc.setFont('helvetica','bold'); doc.setFontSize(9);
-    doc.text(`SAY TOTAL: ${ps.length} Pallet${ps.length>1?'s':''} ONLY`,ml,fy); fy+=5;
-    doc.text('Dimension of pallet & weight',ml,fy); fy+=5;
+    doc.text(`SAY TOTAL: ${ps.length} Pallet${ps.length>1?'s':''} ONLY`, ml, fy); fy += 5;
+
+    checkPage(5);
+    doc.text('Dimension of pallet & weight', ml, fy); fy += 5;
     doc.setFont('helvetica','normal');
-    ps.forEach(p=>{ doc.text(`Pallet ${p.num}: ${p.l}cm(L)*${p.w}cm(W)*${p.h}cm(H)`,ml,fy); fy+=5; });
+    ps.forEach(p => {
+      checkPage(5);
+      doc.text(`Pallet ${p.num}: ${p.l}cm(L)*${p.w}cm(W)*${p.h}cm(H)`, ml, fy); fy += 5;
+    });
 
     // CBM calculation
     let totalCBM = 0;
@@ -1136,10 +1153,15 @@ function genPL() {
 
     if (cbmLines.length) {
       fy += 2;
+      checkPage(5 + cbmLines.length * 5 + 5);
       doc.setFont('helvetica','bold'); doc.setFontSize(9);
       doc.text('Total CBM:', ml, fy); fy += 5;
       doc.setFont('helvetica','normal');
-      cbmLines.forEach(line => { doc.text(line, ml, fy); fy += 5; });
+      cbmLines.forEach(line => {
+        checkPage(5);
+        doc.text(line, ml, fy); fy += 5;
+      });
+      checkPage(5);
       doc.setFont('helvetica','bold');
       doc.text(`TOTAL CBM: ${totalCBM.toFixed(3)} m³`, ml, fy);
     }
