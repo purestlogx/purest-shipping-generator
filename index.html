@@ -234,7 +234,8 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
     </div>
     <div class="gen-section">
       <button class="btn-gen btn-pl-gen" onclick="genPL()">⬇ Download Packing List (PDF)</button>
-      <p class="notice">PDF will download directly to your device.</p>
+      <button class="btn-gen" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;margin-left:12px;" onclick="genPalletLabels()">⬇ Download Pallet Labels (PDF)</button>
+      <p class="notice">Pallet Labels: one A4 label per pallet, auto-filled from shipment details above.</p>
     </div>
   </div>
 
@@ -1107,6 +1108,32 @@ function genPL() {
   const ctry=document.getElementById('pl-ctry').value;
   if(!ctry){alert('Please select a destination country.');return;}
   const rows=getPLR(); if(!rows.length){alert('Please add at least one item.');return;}
+
+  // ── Discrepancy check: pallet numbers in line items vs pallet dimensions ──
+  const ps = getPallets();
+  if (ps.length) {
+    // Pallet numbers entered in the dimension section (1, 2, 3...)
+    const dimPallets = new Set(ps.map(p => p.num.toString()));
+    // Pallet numbers used in line items
+    const itemPallets = new Set(rows.map(r => r.pallet).filter(p => p));
+
+    // Find any item pallets that don't have a matching dimension entry
+    const missing = [...itemPallets].filter(p => !dimPallets.has(p));
+    // Find any dimension pallets that have no matching line items
+    const extra   = [...dimPallets].filter(p => !itemPallets.has(p));
+    // Find any pallet rows with incomplete/missing dimensions
+    const noDim   = ps.filter(p => !parseFloat(p.l) || !parseFloat(p.w) || !parseFloat(p.h));
+
+    if (missing.length || extra.length || noDim.length) {
+      let msg = 'Pallet mismatch detected:\n\n';
+      if (missing.length) msg += `• Pallet(s) ${missing.join(', ')} found in line items but have no dimension entered.\n`;
+      if (extra.length)   msg += `• Pallet(s) ${extra.join(', ')} have dimensions but no matching line items.\n`;
+      if (noDim.length)   msg += `• Pallet(s) ${noDim.map(p => p.num).join(', ')} are missing L*W*H dimensions.\n`;
+      msg += '\nDo you want to proceed anyway?';
+      if (!confirm(msg)) return;
+    }
+  }
+
   const doc=new jsPDF({unit:'mm',format:'a4'});
   const {y,ml}=buildPDFHeader(doc,'PACKING LIST','pl');
   const tC=rows.reduce((s,r)=>s+r.ctn,0),tQ=rows.reduce((s,r)=>s+r.qty,0),tN=rows.reduce((s,r)=>s+r.tN,0),tG=rows.reduce((s,r)=>s+r.tG,0);
@@ -1125,44 +1152,51 @@ function genPL() {
     }
   }
 
-  const ps = getPallets();
-  if (ps.length) {
+  const psAll = getPallets();
+  // Only include pallets with all 3 valid numeric dimensions
+  const psValid = psAll.filter(p => parseFloat(p.l) && parseFloat(p.w) && parseFloat(p.h));
+
+  if (psValid.length) {
+    // Group CTN by pallet number from line items
+    const palletCTN = {};
+    getPLR().forEach(r => {
+      const pNum = r.pallet ? r.pallet.toString().trim() : '';
+      if (pNum) palletCTN[pNum] = (palletCTN[pNum] || 0) + r.ctn;
+    });
+
+    // Calculate CBM per pallet
+    let totalCBM = 0;
+    const palletCBMMap = {};
+    psValid.forEach(p => {
+      const l = parseFloat(p.l), w = parseFloat(p.w), h = parseFloat(p.h);
+      const cbm = (l * w * h) / 1000000;
+      palletCBMMap[p.num] = cbm;
+      totalCBM += cbm;
+    });
+
     checkPage(10);
     doc.setFont('helvetica','bold'); doc.setFontSize(9);
-    doc.text(`SAY TOTAL: ${ps.length} Pallet${ps.length>1?'s':''} ONLY`, ml, fy); fy += 5;
+    doc.text(`SAY TOTAL: ${psValid.length} Pallet${psValid.length>1?'s':''} ONLY`, ml, fy); fy += 5;
 
     checkPage(5);
     doc.text('Dimension of pallet & weight', ml, fy); fy += 5;
     doc.setFont('helvetica','normal');
-    ps.forEach(p => {
+
+    psValid.forEach(p => {
       checkPage(5);
-      doc.text(`Pallet ${p.num}: ${p.l}cm(L)*${p.w}cm(W)*${p.h}cm(H)`, ml, fy); fy += 5;
+      const ctn    = palletCTN[p.num.toString()] || palletCTN[p.num] || null;
+      const ctnTxt = ctn ? ` - ${ctn} CTN` : '';
+      const cbm    = palletCBMMap[p.num];
+      const cbmTxt = cbm ? `  (${cbm.toFixed(3)} m³)` : '';
+      doc.text(`Pallet ${p.num}: ${p.l}cm(L)*${p.w}cm(W)*${p.h}cm(H)${ctnTxt}${cbmTxt}`, ml, fy); fy += 5;
     });
 
-    // CBM calculation
-    let totalCBM = 0;
-    const cbmLines = ps.map(p => {
-      const l = parseFloat(p.l), w = parseFloat(p.w), h = parseFloat(p.h);
-      if (l && w && h) {
-        const cbm = (l * w * h) / 1000000;
-        totalCBM += cbm;
-        return `Pallet ${p.num}: ${cbm.toFixed(3)} m³`;
-      }
-      return null;
-    }).filter(Boolean);
-
-    if (cbmLines.length) {
-      fy += 2;
-      checkPage(5 + cbmLines.length * 5 + 5);
-      doc.setFont('helvetica','bold'); doc.setFontSize(9);
-      doc.text('Total CBM:', ml, fy); fy += 5;
-      doc.setFont('helvetica','normal');
-      cbmLines.forEach(line => {
-        checkPage(5);
-        doc.text(line, ml, fy); fy += 5;
-      });
+    fy += 2;
+    checkPage(10);
+    doc.setFont('helvetica','bold');
+    doc.text(`TOTAL CTN: ${tC} CTN`, ml, fy); fy += 5;
+    if (totalCBM > 0) {
       checkPage(5);
-      doc.setFont('helvetica','bold');
       doc.text(`TOTAL CBM: ${totalCBM.toFixed(3)} m³`, ml, fy);
     }
   }
@@ -1170,7 +1204,103 @@ function genPL() {
 }
 
 // ══════════════════════════════════════════
-// GENERATE CARTON LABELS
+// GENERATE PALLET LABELS (A4, one per pallet)
+// ══════════════════════════════════════════
+function genPalletLabels() {
+  const ctry = document.getElementById('pl-ctry').value;
+  if (!ctry) { alert('Please select a destination country first.'); return; }
+
+  const ps = getPallets().filter(p => p.l !== '?' || p.w !== '?' || p.h !== '?');
+  if (!ps.length) { alert('Please add at least one pallet in the Pallet Dimensions section.'); return; }
+
+  const inv     = document.getElementById('pl-inv').value || '—';
+  const dest    = CONS[ctry] ? CONS[ctry].label : ctry;
+  const route   = `SG  to  ${dest}`;
+  const total   = ps.length;
+
+  // Group CTN by pallet number from line items
+  const palletCTN = {};
+  getPLR().forEach(r => {
+    const pNum = r.pallet ? r.pallet.toString().trim() : '';
+    if (pNum) palletCTN[pNum] = (palletCTN[pNum] || 0) + r.ctn;
+  });
+
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const W = 210, H = 297;
+  const ML = 20, MR = 190; // left/right margin
+  const CW = MR - ML;      // content width = 170mm
+
+  ps.forEach((p, idx) => {
+    if (idx > 0) doc.addPage();
+
+    const ctn = palletCTN[p.num.toString()] || palletCTN[p.num] || '—';
+
+    // ── Header bar ──────────────────────────────────────────────────────────
+    doc.setFillColor(26, 26, 46);
+    doc.rect(0, 0, W, 36, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text('PUREST NEST PTE LTD', W / 2, 18, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(200, 200, 200);
+    doc.text('PACKING LABEL', W / 2, 28, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+
+    // ── Helper: draw a field block ──────────────────────────────────────────
+    function field(label, value, y, h, fontSize, bold) {
+      doc.setDrawColor(220, 220, 220);
+      doc.setFillColor(250, 250, 250);
+      doc.rect(ML, y, CW, h, 'FD');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(140, 140, 140);
+      doc.text(label, ML + 6, y + 9);
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(fontSize);
+      doc.setTextColor(26, 26, 46);
+      doc.text(String(value), ML + 6, y + h - 8);
+    }
+
+    // ── Fields ───────────────────────────────────────────────────────────────
+    let fy = 46;
+    const GAP = 5;
+
+    // Shipment code
+    field('SHIPMENT CODE', inv, fy, 36, 24, true); fy += 36 + GAP;
+
+    // Route
+    field('ROUTE', route, fy, 36, 24, true); fy += 36 + GAP;
+
+    // Pallet number — large prominent
+    doc.setDrawColor(26, 26, 46);
+    doc.setFillColor(26, 26, 46);
+    doc.rect(ML, fy, CW, 70, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(180, 180, 180);
+    doc.text('PALLET', ML + 6, fy + 12);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(80);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`${p.num}`, ML + 6, fy + 58);
+    const bigNumWidth = doc.getTextWidth(`${p.num}`);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(14);
+    doc.setTextColor(180, 180, 180);
+    doc.text(`of  ${total}`, ML + 6 + bigNumWidth + 3, fy + 50);
+    doc.setTextColor(0, 0, 0);
+    fy += 70 + GAP;
+
+    // Carton qty
+    field('CARTON QTY', ctn, fy, 50, 40, true); fy += 50 + GAP;
+  });
+
+  doc.save(`PalletLabels_${inv}.pdf`);
+}
+
+// ══════════════════════════════════════════
 // ══════════════════════════════════════════
 function genLabels() {
   const po  = document.getElementById('cl-po').value.trim();
