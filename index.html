@@ -190,6 +190,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
         <div class="col-map-item"><span>Col E</span>Qty</div>
         <div class="col-map-item"><span>Col F</span>Net Wt</div>
         <div class="col-map-item"><span>Col G</span>Gross Wt</div>
+        <div class="col-map-item" style="border-color:#c6f6d5;background:#f0fff4"><span style="background:#38a169">✎</span>Pallet Split <span style="font-size:10px;color:#a0aec0">(manual only)</span></div>
       </div>
       <textarea class="paste-area" id="pl-paste" rows="2" placeholder="Copy full table from Excel (incl. header) → click here → Ctrl+V"></textarea>
       <div class="paste-hint">💡 Paste the whole table at once — header is auto-skipped.</div>
@@ -198,6 +199,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
           <thead><tr>
             <th style="width:28px">#</th>
             <th style="width:58px">Pallet No.</th>
+            <th style="width:90px">Pallet Split</th>
             <th style="width:65px">Item Code</th>
             <th class="left" style="min-width:160px">Description</th>
             <th style="width:45px">CTN</th>
@@ -873,6 +875,7 @@ function addPL(d={}, flash=false) {
   const c=parseFloat(d.ctn)||0,n=parseFloat(d.net)||0,g=parseFloat(d.gross)||0;
   tr.innerHTML=`<td style="text-align:center;color:#a0aec0;font-size:11px">${i}</td>
     <td><input type="text" value="${xe(d.pallet||'')}" style="width:50px" oninput="calcPL()"></td>
+    <td><input type="text" value="${xe(d.split||'')}" placeholder="e.g. 20-1, 10-2" style="width:86px;font-size:11px" oninput="calcPL()"></td>
     <td><input type="text" value="${xe(d.code||'')}"   style="width:60px" oninput="calcPL()"></td>
     <td><input type="text" value="${xe(d.desc||'')}"   oninput="calcPL()"></td>
     <td><input type="number" value="${d.ctn||''}"   min="0" style="width:40px" oninput="calcPL()"></td>
@@ -886,10 +889,35 @@ function addPL(d={}, flash=false) {
   tb.appendChild(tr); calcPL();
 }
 function calcPL(){ const r=getPLR(); document.getElementById('pl-ti').textContent=r.length; document.getElementById('pl-tc').textContent=r.reduce((s,x)=>s+x.ctn,0); document.getElementById('pl-tq').textContent=r.reduce((s,x)=>s+x.qty,0); document.getElementById('pl-tn').textContent=r.reduce((s,x)=>s+x.tN,0).toFixed(3); document.getElementById('pl-tg').textContent=r.reduce((s,x)=>s+x.tG,0).toFixed(3); }
-function getPLR(){ return[...document.querySelectorAll('#pl-body tr')].map(tr=>{ const i=tr.querySelectorAll('input'),c=parseFloat(i[3].value)||0,n=parseFloat(i[5].value)||0,g=parseFloat(i[6].value)||0; return{pallet:i[0].value.trim(),code:i[1].value.trim(),desc:i[2].value.trim(),qty:parseFloat(i[4].value)||0,ctn:c,net:n,gross:g,tN:c*n,tG:c*g}; }); }
+function getPLR(){ return[...document.querySelectorAll('#pl-body tr')].map(tr=>{ const i=tr.querySelectorAll('input'),c=parseFloat(i[4].value)||0,n=parseFloat(i[6].value)||0,g=parseFloat(i[7].value)||0; return{pallet:i[0].value.trim(),split:i[1].value.trim(),code:i[2].value.trim(),desc:i[3].value.trim(),qty:parseFloat(i[5].value)||0,ctn:c,net:n,gross:g,tN:c*n,tG:c*g}; }); }
 
-// ══════════════════════════════════════════
-// CARTON LABELS
+// Parse pallet split string e.g. "20-1, 10-2" → {1: 20, 2: 10}
+function parseSplit(splitStr) {
+  const result = {};
+  if (!splitStr) return result;
+  splitStr.split(',').forEach(part => {
+    const m = part.trim().match(/^(\d+)-(\d+)$/);
+    if (m) result[m[2]] = (result[m[2]] || 0) + parseInt(m[1]);
+  });
+  return result;
+}
+
+// Build palletCTN map from PL rows, respecting split field
+function buildPalletCTN(rows) {
+  const map = {};
+  rows.forEach(r => {
+    if (r.split) {
+      const splits = parseSplit(r.split);
+      Object.entries(splits).forEach(([pNum, ctn]) => {
+        map[pNum] = (map[pNum] || 0) + ctn;
+      });
+    } else {
+      const pNum = r.pallet ? r.pallet.toString().trim() : '';
+      if (pNum) map[pNum] = (map[pNum] || 0) + r.ctn;
+    }
+  });
+  return map;
+}
 // ══════════════════════════════════════════
 function catDropdownHTML(selectedCatId) {
   return '<option value="">— Select —</option>' +
@@ -1112,23 +1140,35 @@ function genPL() {
   // ── Discrepancy check: pallet numbers in line items vs pallet dimensions ──
   const ps = getPallets();
   if (ps.length) {
-    // Pallet numbers entered in the dimension section (1, 2, 3...)
     const dimPallets = new Set(ps.map(p => p.num.toString()));
-    // Pallet numbers used in line items
-    const itemPallets = new Set(rows.map(r => r.pallet).filter(p => p));
+    // Collect all referenced pallet numbers (from pallet field OR split field)
+    const itemPallets = new Set();
+    rows.forEach(r => {
+      if (r.split) {
+        Object.keys(parseSplit(r.split)).forEach(p => itemPallets.add(p));
+      } else if (r.pallet) {
+        itemPallets.add(r.pallet.toString());
+      }
+    });
 
-    // Find any item pallets that don't have a matching dimension entry
     const missing = [...itemPallets].filter(p => !dimPallets.has(p));
-    // Find any dimension pallets that have no matching line items
     const extra   = [...dimPallets].filter(p => !itemPallets.has(p));
-    // Find any pallet rows with incomplete/missing dimensions
     const noDim   = ps.filter(p => !parseFloat(p.l) || !parseFloat(p.w) || !parseFloat(p.h));
 
-    if (missing.length || extra.length || noDim.length) {
+    // Check split sums match row CTN
+    const splitMismatch = rows.filter(r => {
+      if (!r.split) return false;
+      const splits = parseSplit(r.split);
+      const splitTotal = Object.values(splits).reduce((s, v) => s + v, 0);
+      return splitTotal !== r.ctn;
+    });
+
+    if (missing.length || extra.length || noDim.length || splitMismatch.length) {
       let msg = 'Pallet mismatch detected:\n\n';
-      if (missing.length) msg += `• Pallet(s) ${missing.join(', ')} found in line items but have no dimension entered.\n`;
-      if (extra.length)   msg += `• Pallet(s) ${extra.join(', ')} have dimensions but no matching line items.\n`;
-      if (noDim.length)   msg += `• Pallet(s) ${noDim.map(p => p.num).join(', ')} are missing L*W*H dimensions.\n`;
+      if (missing.length)     msg += `• Pallet(s) ${missing.join(', ')} found in line items but have no dimension entered.\n`;
+      if (extra.length)       msg += `• Pallet(s) ${extra.join(', ')} have dimensions but no matching line items.\n`;
+      if (noDim.length)       msg += `• Pallet(s) ${noDim.map(p => p.num).join(', ')} are missing L*W*H dimensions.\n`;
+      if (splitMismatch.length) msg += `• ${splitMismatch.length} row(s) have a Pallet Split that doesn't add up to the row's CTN.\n`;
       msg += '\nDo you want to proceed anyway?';
       if (!confirm(msg)) return;
     }
@@ -1137,9 +1177,9 @@ function genPL() {
   const doc=new jsPDF({unit:'mm',format:'a4'});
   const {y,ml}=buildPDFHeader(doc,'PACKING LIST','pl');
   const tC=rows.reduce((s,r)=>s+r.ctn,0),tQ=rows.reduce((s,r)=>s+r.qty,0),tN=rows.reduce((s,r)=>s+r.tN,0),tG=rows.reduce((s,r)=>s+r.tG,0);
-  const body=rows.map((r,i)=>[i+1,r.pallet,r.code,r.desc,r.ctn,r.qty,r.net.toFixed(3),r.gross.toFixed(3),r.tN.toFixed(3),r.tG.toFixed(3)]);
-  body.push(['','','',{content:'TOTAL',styles:{fontStyle:'bold'}},{content:tC,styles:{fontStyle:'bold',halign:'center'}},{content:tQ,styles:{fontStyle:'bold',halign:'center'}},'','',{content:tN.toFixed(3),styles:{fontStyle:'bold',halign:'right'}},{content:tG.toFixed(3),styles:{fontStyle:'bold',halign:'right'}}]);
-  doc.autoTable({ startY:y+4, head:[['#','Pallet\nNo.','Item\nCode','Item Description','CTN','Qty','Net Wt\n(KGM)','Gross Wt\n(KGM)','Total Net\nWt','Total Gross\nWt']], body, styles:{fontSize:7.5,cellPadding:2.5,overflow:'linebreak'}, headStyles:{fillColor:[45,55,72],halign:'center',fontStyle:'bold',fontSize:7}, columnStyles:{0:{halign:'center',cellWidth:8},1:{halign:'center',cellWidth:14},2:{halign:'center',cellWidth:15},3:{cellWidth:'auto'},4:{halign:'center',cellWidth:11},5:{halign:'center',cellWidth:12},6:{halign:'right',cellWidth:18},7:{halign:'right',cellWidth:19},8:{halign:'right',cellWidth:19},9:{halign:'right',cellWidth:20}}, alternateRowStyles:{fillColor:[247,250,252]} });
+  const body=rows.map((r,i)=>[i+1,r.pallet,r.code,r.desc,r.ctn,r.qty,r.net.toFixed(3),r.gross.toFixed(3),r.split||'',r.tN.toFixed(3),r.tG.toFixed(3)]);
+  body.push(['','','',{content:'TOTAL',styles:{fontStyle:'bold'}},{content:tC,styles:{fontStyle:'bold',halign:'center'}},{content:tQ,styles:{fontStyle:'bold',halign:'center'}},'','','',{content:tN.toFixed(3),styles:{fontStyle:'bold',halign:'right'}},{content:tG.toFixed(3),styles:{fontStyle:'bold',halign:'right'}}]);
+  doc.autoTable({ startY:y+4, head:[['#','Pallet\nNo.','Item\nCode','Item Description','CTN','Qty','Net Wt\n(KGM)','Gross Wt\n(KGM)','Pallet\nSplit','Total Net\nWt','Total Gross\nWt']], body, styles:{fontSize:7.5,cellPadding:2.5,overflow:'linebreak'}, headStyles:{fillColor:[45,55,72],halign:'center',fontStyle:'bold',fontSize:7}, columnStyles:{0:{halign:'center',cellWidth:8},1:{halign:'center',cellWidth:13},2:{halign:'center',cellWidth:14},3:{cellWidth:'auto'},4:{halign:'center',cellWidth:10},5:{halign:'center',cellWidth:11},6:{halign:'right',cellWidth:16},7:{halign:'right',cellWidth:17},8:{halign:'center',cellWidth:18},9:{halign:'right',cellWidth:17},10:{halign:'right',cellWidth:18}}, alternateRowStyles:{fillColor:[247,250,252]} });
   let fy = doc.lastAutoTable.finalY + 8;
   const PAGE_H = 287; // A4 height in mm with margin
   const MARGIN_BOTTOM = 15;
@@ -1157,12 +1197,8 @@ function genPL() {
   const psValid = psAll.filter(p => parseFloat(p.l) && parseFloat(p.w) && parseFloat(p.h));
 
   if (psValid.length) {
-    // Group CTN by pallet number from line items
-    const palletCTN = {};
-    getPLR().forEach(r => {
-      const pNum = r.pallet ? r.pallet.toString().trim() : '';
-      if (pNum) palletCTN[pNum] = (palletCTN[pNum] || 0) + r.ctn;
-    });
+    // Group CTN by pallet number (respects split field)
+    const palletCTN = buildPalletCTN(getPLR());
 
     // Calculate CBM per pallet
     let totalCBM = 0;
@@ -1219,11 +1255,7 @@ function genPalletLabels() {
   const total   = ps.length;
 
   // Group CTN by pallet number from line items
-  const palletCTN = {};
-  getPLR().forEach(r => {
-    const pNum = r.pallet ? r.pallet.toString().trim() : '';
-    if (pNum) palletCTN[pNum] = (palletCTN[pNum] || 0) + r.ctn;
-  });
+  const palletCTN = buildPalletCTN(getPLR());
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
   const W = 210, H = 297;
