@@ -87,6 +87,27 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
 .skm-empty { text-align: center; color: #a0aec0; font-size: 13px; padding: 24px 0; }
 .tag-unmatched { display: inline-block; background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; border-radius: 12px; font-size: 10px; font-weight: 600; padding: 1px 7px; margin-left: 5px; }
 .tag-matched { display: inline-block; background: #f0fff4; color: #276749; border: 1px solid #9ae6b4; border-radius: 12px; font-size: 10px; font-weight: 600; padding: 1px 7px; margin-left: 5px; }
+/* Settings layout */
+.settings-layout { display: flex; gap: 0; min-height: 400px; }
+.settings-sidebar { width: 190px; flex-shrink: 0; border-right: 1.5px solid #e2e8f0; padding: 20px 0; background: #f7fafc; border-radius: 0 0 0 12px; }
+.settings-nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; cursor: pointer; font-size: 13.5px; font-weight: 500; color: #4a5568; border-left: 3px solid transparent; transition: all 0.15s; }
+.settings-nav-item:hover { background: #edf2f7; color: #2d3748; }
+.settings-nav-item.active { background: #ebf8ff; color: #2b6cb0; border-left-color: #2b6cb0; font-weight: 700; }
+.settings-nav-icon { font-size: 16px; }
+.settings-content { flex: 1; padding: 0; overflow: hidden; }
+.settings-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 320px; color: #a0aec0; font-size: 14px; gap: 10px; }
+.settings-placeholder .ph-icon { font-size: 36px; }
+/* Address Manager styles */
+.addr-card { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; position: relative; }
+.addr-card-label { font-size: 13px; font-weight: 700; color: #2d3748; margin-bottom: 6px; }
+.addr-card-detail { font-size: 12px; color: #718096; line-height: 1.6; }
+.addr-card-actions { position: absolute; top: 14px; right: 14px; display: flex; gap: 6px; }
+.addr-form { background: #f7fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+.addr-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.addr-form-grid .field.full { grid-column: 1 / -1; }
+.addr-form-actions { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; }
+.btn-cancel { padding: 8px 16px; background: #edf2f7; color: #4a5568; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.btn-cancel:hover { background: #e2e8f0; }
 </style>
 </head>
 <body>
@@ -104,7 +125,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
     <div class="tab active-ci" id="tab-ci"  onclick="switchTab('ci')">🧾 Commercial Invoice</div>
     <div class="tab"           id="tab-pl"  onclick="switchTab('pl')">📦 Packing List</div>
     <div class="tab"           id="tab-cl"  onclick="switchTab('cl')">🏷️ Carton Labels</div>
-    <div class="tab"           id="tab-skm" onclick="switchTab('skm')">⚙️ SKU Manager</div>
+    <div class="tab"           id="tab-skm" onclick="switchTab('skm')">⚙️ Settings</div>
   </div>
 
   <!-- ═══ CI PANEL ═══ -->
@@ -115,12 +136,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
         <div class="field"><label>Invoice Number</label><input type="text" id="ci-inv" placeholder="e.g. PNSGPH-20260402-AN" oninput="autoDetect('ci')"></div>
         <div class="field"><label>Date <span id="ci-date-badge"></span></label><input type="date" id="ci-date"></div>
         <div class="field"><label>Destination <span id="ci-ctry-badge"></span></label>
-          <select id="ci-ctry" onchange="fillConsignee('ci')">
-            <option value="">— Select —</option>
-            <option value="PH">🇵🇭 Philippines</option>
-            <option value="MY">🇲🇾 Malaysia</option>
-            <option value="AUS">🇦🇺 Australia</option>
-          </select>
+          <select id="ci-ctry" onchange="fillConsignee('ci')"><option value="">— Select —</option></select>
         </div>
       </div>
       <div class="consignee-box" id="ci-consignee">Select a country or type an invoice number to auto-fill.</div>
@@ -170,12 +186,7 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
         <div class="field"><label>Invoice Number</label><input type="text" id="pl-inv" placeholder="e.g. PNSGPH-20260402-AN" oninput="autoDetect('pl')"></div>
         <div class="field"><label>Date <span id="pl-date-badge"></span></label><input type="date" id="pl-date"></div>
         <div class="field"><label>Destination <span id="pl-ctry-badge"></span></label>
-          <select id="pl-ctry" onchange="fillConsignee('pl')">
-            <option value="">— Select —</option>
-            <option value="PH">🇵🇭 Philippines</option>
-            <option value="MY">🇲🇾 Malaysia</option>
-            <option value="AUS">🇦🇺 Australia</option>
-          </select>
+          <select id="pl-ctry" onchange="fillConsignee('pl')"><option value="">— Select —</option></select>
         </div>
       </div>
       <div class="consignee-box" id="pl-consignee">Select a country or type an invoice number to auto-fill.</div>
@@ -190,7 +201,6 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
         <div class="col-map-item"><span>Col E</span>Qty</div>
         <div class="col-map-item"><span>Col F</span>Net Wt</div>
         <div class="col-map-item"><span>Col G</span>Gross Wt</div>
-        <div class="col-map-item" style="border-color:#c6f6d5;background:#f0fff4"><span style="background:#38a169">✎</span>Pallet Split <span style="font-size:10px;color:#a0aec0">(manual only)</span></div>
       </div>
       <textarea class="paste-area" id="pl-paste" rows="2" placeholder="Copy full table from Excel (incl. header) → click here → Ctrl+V"></textarea>
       <div class="paste-hint">💡 Paste the whole table at once — header is auto-skipped.</div>
@@ -199,7 +209,6 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
           <thead><tr>
             <th style="width:28px">#</th>
             <th style="width:58px">Pallet No.</th>
-            <th style="width:90px">Pallet Split</th>
             <th style="width:65px">Item Code</th>
             <th class="left" style="min-width:160px">Description</th>
             <th style="width:45px">CTN</th>
@@ -306,89 +315,145 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c;
 
   <!-- ═══ SKU MANAGER PANEL ═══ -->
   <div class="panel panel-skm" id="panel-skm">
+    <div class="settings-layout">
 
-    <!-- Export / Import bar -->
-    <div class="section" style="padding:14px 24px;">
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <span style="font-size:12px;font-weight:600;color:#718096;margin-right:4px;">SKU Database:</span>
-        <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
-        <label class="btn-import-label">
-          ⬆ Import CSV
-          <input type="file" id="import-file" accept=".csv" onchange="importCSV(this)" style="display:none">
-        </label>
-        <span style="font-size:11px;color:#a0aec0;">CSV format: SKU Code · Product Name · Category Name. Duplicate codes are skipped.</span>
-      </div>
-    </div>
-
-    <!-- Categories -->
-    <div class="section">
-      <h2>Categories <span>Each category has a default Qty / Ctn that auto-fills on the label</span></h2>
-      <div class="skm-add-row">
-        <div class="field">
-          <label>Category Name</label>
-          <input type="text" id="cat-name" placeholder="e.g. Melts">
+      <!-- ── Sidebar ── -->
+      <div class="settings-sidebar">
+        <div class="settings-nav-item" id="snav-sku" onclick="switchSettings('sku')">
+          <span class="settings-nav-icon">🗂️</span> SKU Manager
         </div>
-        <div class="field" style="max-width:160px">
-          <label>Default Qty / Ctn</label>
-          <input type="number" id="cat-qty" placeholder="e.g. 40" min="1">
+        <div class="settings-nav-item" id="snav-addr" onclick="switchSettings('addr')">
+          <span class="settings-nav-icon">📍</span> Address Manager
         </div>
-        <button class="btn-save" onclick="saveCategory()">+ Add Category</button>
-      </div>
-      <table class="tbl" id="cat-tbl">
-        <thead><tr>
-          <th style="width:28px">#</th>
-          <th class="left">Category Name</th>
-          <th style="width:140px">Default Qty / Ctn</th>
-          <th style="width:60px"></th>
-        </tr></thead>
-        <tbody id="cat-body"></tbody>
-      </table>
-      <p class="skm-empty" id="cat-empty" style="display:none">No categories yet. Add one above.</p>
-    </div>
-
-    <!-- SKUs -->
-    <div class="section">
-      <h2>SKU Database <span>Maps SKU Code → Product Name + Category</span></h2>
-
-      <!-- Single add -->
-      <div class="skm-add-row">
-        <div class="field">
-          <label>SKU Code</label>
-          <input type="text" id="sku-code" placeholder="e.g. PN-SG-001">
-        </div>
-        <div class="field">
-          <label>Product Name</label>
-          <input type="text" id="sku-name" placeholder="e.g. Skin Glow Melts 30s">
-        </div>
-        <div class="field" style="max-width:200px">
-          <label>Category</label>
-          <select id="sku-cat"><option value="">— Select —</option></select>
-        </div>
-        <button class="btn-save" onclick="saveSKU()">+ Add SKU</button>
       </div>
 
-      <!-- Bulk paste -->
-      <div style="margin-bottom:18px">
-        <div class="col-map" style="margin-bottom:6px">
-          <div class="col-map-item"><span>Col A</span>SKU Code</div>
-          <div class="col-map-item"><span>Col B</span>Product Name</div>
-          <div class="col-map-item"><span>Col C</span>Category Name</div>
+      <!-- ── Content area ── -->
+      <div class="settings-content">
+
+        <!-- Placeholder -->
+        <div id="settings-placeholder" class="settings-placeholder">
+          <span class="ph-icon">⚙️</span>
+          <span>Select a category on the left to get started</span>
         </div>
-        <textarea class="paste-area" id="sku-bulk-paste" rows="2" placeholder="Copy SKU rows from Excel (incl. header) → click here → Ctrl+V  — Category must match an existing category name exactly"></textarea>
-        <div class="paste-hint">💡 Category name must match exactly (e.g. "Melts"). Unmatched categories are left blank for manual selection.</div>
-      </div>
-      <table class="tbl">
-        <thead><tr>
-          <th style="width:28px">#</th>
-          <th style="width:130px">SKU Code</th>
-          <th class="left">Product Name</th>
-          <th style="width:160px">Category</th>
-          <th style="width:60px"></th>
-        </tr></thead>
-        <tbody id="sku-body"></tbody>
-      </table>
-      <p class="skm-empty" id="sku-empty" style="display:none">No SKUs yet. Add one above.</p>
-    </div>
+
+        <!-- SKU Manager content -->
+        <div id="settings-sku" style="display:none">
+          <!-- Export / Import bar -->
+          <div class="section" style="padding:14px 24px;">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <span style="font-size:12px;font-weight:600;color:#718096;margin-right:4px;">SKU Database:</span>
+              <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+              <label class="btn-import-label">
+                ⬆ Import CSV
+                <input type="file" id="import-file" accept=".csv" onchange="importCSV(this)" style="display:none">
+              </label>
+              <span style="font-size:11px;color:#a0aec0;">CSV format: SKU Code · Product Name · Category Name. Duplicate codes are skipped.</span>
+            </div>
+          </div>
+          <!-- Categories -->
+          <div class="section">
+            <h2>Categories <span>Each category has a default Qty / Ctn that auto-fills on the label</span></h2>
+            <div class="skm-add-row">
+              <div class="field"><label>Category Name</label><input type="text" id="cat-name" placeholder="e.g. Melts"></div>
+              <div class="field" style="max-width:160px"><label>Default Qty / Ctn</label><input type="number" id="cat-qty" placeholder="e.g. 40" min="1"></div>
+              <button class="btn-save" onclick="saveCategory()">+ Add Category</button>
+            </div>
+            <table class="tbl" id="cat-tbl">
+              <thead><tr>
+                <th style="width:28px">#</th>
+                <th class="left">Category Name</th>
+                <th style="width:140px">Default Qty / Ctn</th>
+                <th style="width:60px"></th>
+              </tr></thead>
+              <tbody id="cat-body"></tbody>
+            </table>
+            <p class="skm-empty" id="cat-empty" style="display:none">No categories yet. Add one above.</p>
+          </div>
+          <!-- SKUs -->
+          <div class="section">
+            <h2>SKU Database <span>Maps SKU Code → Product Name + Category</span></h2>
+            <div class="skm-add-row">
+              <div class="field"><label>SKU Code</label><input type="text" id="sku-code" placeholder="e.g. PN-SG-001"></div>
+              <div class="field"><label>Product Name</label><input type="text" id="sku-name" placeholder="e.g. Skin Glow Melts 30s"></div>
+              <div class="field" style="max-width:200px"><label>Category</label><select id="sku-cat"><option value="">— Select —</option></select></div>
+              <button class="btn-save" onclick="saveSKU()">+ Add SKU</button>
+            </div>
+            <div style="margin-bottom:18px">
+              <div class="col-map" style="margin-bottom:6px">
+                <div class="col-map-item"><span>Col A</span>SKU Code</div>
+                <div class="col-map-item"><span>Col B</span>Product Name</div>
+                <div class="col-map-item"><span>Col C</span>Category Name</div>
+              </div>
+              <textarea class="paste-area" id="sku-bulk-paste" rows="2" placeholder="Copy SKU rows from Excel (incl. header) → click here → Ctrl+V  — Category must match an existing category name exactly"></textarea>
+              <div class="paste-hint">💡 Category name must match exactly (e.g. "Melts"). Unmatched categories are left blank for manual selection.</div>
+            </div>
+            <table class="tbl">
+              <thead><tr>
+                <th style="width:28px">#</th>
+                <th style="width:130px">SKU Code</th>
+                <th class="left">Product Name</th>
+                <th style="width:160px">Category</th>
+                <th style="width:60px"></th>
+              </tr></thead>
+              <tbody id="sku-body"></tbody>
+            </table>
+            <p class="skm-empty" id="sku-empty" style="display:none">No SKUs yet. Add one above.</p>
+          </div>
+        </div><!-- /settings-sku -->
+
+        <!-- Address Manager content -->
+        <div id="settings-addr" style="display:none">
+          <div class="section">
+            <h2>Address Manager <span>Destination addresses for CI &amp; PL documents</span></h2>
+
+            <!-- Add / Edit form -->
+            <div class="addr-form" id="addr-form">
+              <div style="font-size:13px;font-weight:700;color:#2d3748;margin-bottom:14px;" id="addr-form-title">➕ Add New Address</div>
+              <div class="addr-form-grid">
+                <div class="field">
+                  <label>Destination Label <span style="color:#e53e3e">*</span></label>
+                  <input type="text" id="addr-label" placeholder="e.g. Philippines">
+                </div>
+                <div class="field">
+                  <label>Invoice Code <span style="font-size:11px;color:#a0aec0">(for auto-detect)</span></label>
+                  <input type="text" id="addr-invcode" placeholder="e.g. PNSGPH">
+                </div>
+                <div class="field">
+                  <label>Buyer / Bill To</label>
+                  <input type="text" id="addr-buyer" placeholder="e.g. The Purest Group Sdn Bhd">
+                </div>
+                <div class="field">
+                  <label>Consignee Name</label>
+                  <input type="text" id="addr-consname" placeholder="e.g. Warehouse 4, C-Teknik Industrial">
+                </div>
+                <div class="field full">
+                  <label>Full Address</label>
+                  <input type="text" id="addr-address" placeholder="e.g. 143 P. Gregorio Street, Lingunan, Valenzuela City">
+                </div>
+                <div class="field">
+                  <label>Attention / Contact Name</label>
+                  <input type="text" id="addr-attention" placeholder="e.g. Josue Sacdalan">
+                </div>
+                <div class="field">
+                  <label>Phone</label>
+                  <input type="text" id="addr-phone" placeholder="e.g. 0962 924 4997">
+                </div>
+              </div>
+              <input type="hidden" id="addr-edit-id">
+              <div class="addr-form-actions">
+                <button class="btn-cancel" onclick="resetAddrForm()">Cancel</button>
+                <button class="btn-save" onclick="saveAddr()">Save Address</button>
+              </div>
+            </div>
+
+            <!-- Address list -->
+            <div id="addr-list"></div>
+            <p class="skm-empty" id="addr-empty" style="display:none">No addresses yet. Add one above.</p>
+          </div>
+        </div><!-- /settings-addr -->
+
+      </div><!-- /settings-content -->
+    </div><!-- /settings-layout -->
   </div>
 
 </div><!-- /container -->
@@ -399,11 +464,14 @@ const { jsPDF } = window.jspdf;
 // ══════════════════════════════════════════
 // DATA — loaded from localStorage
 // ══════════════════════════════════════════
-const CONS = {
-  PH:  { label:'PHILIPPINES', buyer:'', shipTo:'Warehouse 4, C-Teknik Industrial, 143 P. Gregorio Street, Lingunan, Valenzuela City', contact:'POC: Josue Sacdalan | Phone: 0962 924 4997', recv:'Mon-Sat, 9AM-6PM' },
-  MY:  { label:'MALAYSIA', buyer:'The Purest Group Sdn Bhd, A-13-3, Anjung Hijau, Bukit Jalil, 57000, Kuala Lumpur', shipTo:'Purest Co (NV) Warehouse, Mapletree Logistics Hub, First Floor Block 1 Unit 1, Jalan 22/1, Persiaran Jubli Perak, Seksyen 22, 40300 Shah Alam, Selangor Malaysia', contact:'Sylvia: +60126785601 | Kai: +60 12-382 3665', recv:'' },
-  AUS: { label:'AUSTRALIA', buyer:'1ST STEP PTY LTD, 1/7 The Boulevard, Glen Waverley VIC 3150, Australia | TEL: +6591019928 | ATTN: Mr Tyler Thi Ha', shipTo:'Purest Nest Warehouse, C/- Warehouse A, Kookaburra Logistics Estate, 2 Kookaburra Road North, Prestons NSW 2170', contact:'', recv:'' }
-};
+// Addresses — loaded from localStorage, keyed by id
+let ADDRS = [];
+let ADDR_MAP = {}; // id → address object
+
+function buildAddrMap() {
+  ADDR_MAP = {};
+  ADDRS.forEach(a => { ADDR_MAP[a.id] = a; });
+}
 
 // In-memory DB — persisted to localStorage
 let CATS = []; // { id, name, qty }
@@ -412,7 +480,7 @@ let LOCS = []; // { id, name }
 
 function loadDB() {
   // Version check — clear stale data if schema changed
-  const DB_VERSION = '2';
+  const DB_VERSION = '3';
   if (localStorage.getItem('pn_db_version') !== DB_VERSION) {
     localStorage.removeItem('pn_cats');
     localStorage.removeItem('pn_skus');
@@ -420,9 +488,32 @@ function loadDB() {
     localStorage.setItem('pn_db_version', DB_VERSION);
   }
 
-  try { CATS = JSON.parse(localStorage.getItem('pn_cats') || '[]'); } catch(e){ CATS=[]; }
-  try { SKUS = JSON.parse(localStorage.getItem('pn_skus') || '[]'); } catch(e){ SKUS=[]; }
-  try { LOCS = JSON.parse(localStorage.getItem('pn_locs') || '[]'); } catch(e){ LOCS=[]; }
+  try { CATS  = JSON.parse(localStorage.getItem('pn_cats')  || '[]'); } catch(e){ CATS=[]; }
+  try { SKUS  = JSON.parse(localStorage.getItem('pn_skus')  || '[]'); } catch(e){ SKUS=[]; }
+  try { LOCS  = JSON.parse(localStorage.getItem('pn_locs')  || '[]'); } catch(e){ LOCS=[]; }
+  try { ADDRS = JSON.parse(localStorage.getItem('pn_addrs') || '[]'); } catch(e){ ADDRS=[]; }
+
+  if (!ADDRS.length) {
+    ADDRS = [
+      { id:'addr_ph',  label:'Philippines', invoiceCode:'PNSGPH',
+        buyer:'', consigneeName:'Warehouse 4, C-Teknik Industrial',
+        address:'143 P. Gregorio Street, Lingunan, Valenzuela City',
+        attention:'Josue Sacdalan', phone:'0962 924 4997' },
+      { id:'addr_my',  label:'Malaysia', invoiceCode:'PNSGMY',
+        buyer:'The Purest Group Sdn Bhd, A-13-3, Anjung Hijau, Bukit Jalil, 57000, Kuala Lumpur',
+        consigneeName:'Purest Co (NV) Warehouse, Mapletree Logistics Hub',
+        address:'First Floor Block 1 Unit 1, Jalan 22/1, Persiaran Jubli Perak, Seksyen 22, 40300 Shah Alam, Selangor Malaysia',
+        attention:'Sylvia', phone:'+60126785601' },
+      { id:'addr_aus', label:'Australia', invoiceCode:'PNSGAUS',
+        buyer:'1ST STEP PTY LTD, 1/7 The Boulevard, Glen Waverley VIC 3150, Australia',
+        consigneeName:'Purest Nest Warehouse, C/- Warehouse A, Kookaburra Logistics Estate',
+        address:'2 Kookaburra Road North, Prestons NSW 2170',
+        attention:'Mr Tyler Thi Ha', phone:'+6591019928' }
+    ];
+    saveDB();
+  }
+  buildAddrMap();
+  populateDropdowns();
 
   if (!LOCS.length) {
     LOCS = [
@@ -575,9 +666,10 @@ function importCSV(input) {
   reader.readAsText(file);
 }
 function saveDB() {
-  localStorage.setItem('pn_cats', JSON.stringify(CATS));
-  localStorage.setItem('pn_skus', JSON.stringify(SKUS));
-  localStorage.setItem('pn_locs', JSON.stringify(LOCS));
+  localStorage.setItem('pn_cats',  JSON.stringify(CATS));
+  localStorage.setItem('pn_skus',  JSON.stringify(SKUS));
+  localStorage.setItem('pn_locs',  JSON.stringify(LOCS));
+  localStorage.setItem('pn_addrs', JSON.stringify(ADDRS));
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
@@ -597,7 +689,116 @@ function switchTab(t) {
   });
   document.getElementById('panel-'+t).classList.add('show');
   document.getElementById('tab-'+t).className = 'tab active-'+t;
-  if (t==='skm') renderSKMTables();
+}
+
+function switchSettings(cat) {
+  ['sku','addr'].forEach(c => {
+    document.getElementById('settings-'+c).style.display = 'none';
+    document.getElementById('snav-'+c).classList.remove('active');
+  });
+  document.getElementById('settings-placeholder').style.display = 'none';
+  document.getElementById('settings-'+cat).style.display = 'block';
+  document.getElementById('snav-'+cat).classList.add('active');
+  if (cat === 'sku') renderSKMTables();
+  if (cat === 'addr') renderAddrList();
+}
+
+// ══════════════════════════════════════════
+// POPULATE DESTINATION DROPDOWNS FROM ADDRS
+// ══════════════════════════════════════════
+function populateDropdowns() {
+  ['ci','pl'].forEach(p => {
+    const sel = document.getElementById(p+'-ctry');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Select —</option>';
+    ADDRS.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = a.label;
+      sel.appendChild(opt);
+    });
+    if (cur && ADDR_MAP[cur]) sel.value = cur;
+  });
+}
+
+// ══════════════════════════════════════════
+// ADDRESS MANAGER
+// ══════════════════════════════════════════
+function renderAddrList() {
+  const list = document.getElementById('addr-list');
+  const empty = document.getElementById('addr-empty');
+  if (!ADDRS.length) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = ADDRS.map((a,i) => {
+    const shipTo = [a.consigneeName, a.address].filter(Boolean).join(', ');
+    const contact = [a.attention?'Attn: '+a.attention:'', a.phone?'Phone: '+a.phone:''].filter(Boolean).join(' | ');
+    return `<div class="addr-card">
+      <div class="addr-card-actions">
+        <button class="btn-export" style="padding:4px 10px;font-size:11px" onclick="editAddr('${a.id}')">✏️ Edit</button>
+        <button class="btn-del" onclick="deleteAddr('${a.id}')">×</button>
+      </div>
+      <div class="addr-card-label">${a.label}${a.invoiceCode?' <span style=\"font-size:11px;font-weight:400;color:#a0aec0\">('+a.invoiceCode+')</span>':''}</div>
+      <div class="addr-card-detail">
+        ${a.buyer?'<strong>Buyer:</strong> '+a.buyer+'<br>':''}
+        <strong>Ship To:</strong> ${shipTo}<br>
+        ${contact?'<strong>Contact:</strong> '+contact:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function saveAddr() {
+  const label = document.getElementById('addr-label').value.trim();
+  if (!label) { alert('Destination label is required.'); return; }
+  const editId = document.getElementById('addr-edit-id').value;
+  const obj = {
+    id:           editId || ('addr_'+uid()),
+    label:        label,
+    invoiceCode:  document.getElementById('addr-invcode').value.trim(),
+    buyer:        document.getElementById('addr-buyer').value.trim(),
+    consigneeName:document.getElementById('addr-consname').value.trim(),
+    address:      document.getElementById('addr-address').value.trim(),
+    attention:    document.getElementById('addr-attention').value.trim(),
+    phone:        document.getElementById('addr-phone').value.trim()
+  };
+  if (editId) {
+    const idx = ADDRS.findIndex(a => a.id === editId);
+    if (idx !== -1) ADDRS[idx] = obj;
+  } else {
+    ADDRS.push(obj);
+  }
+  saveDB(); buildAddrMap(); populateDropdowns();
+  resetAddrForm(); renderAddrList();
+}
+
+function editAddr(id) {
+  const a = ADDR_MAP[id]; if (!a) return;
+  document.getElementById('addr-label').value     = a.label || '';
+  document.getElementById('addr-invcode').value   = a.invoiceCode || '';
+  document.getElementById('addr-buyer').value     = a.buyer || '';
+  document.getElementById('addr-consname').value  = a.consigneeName || '';
+  document.getElementById('addr-address').value   = a.address || '';
+  document.getElementById('addr-attention').value = a.attention || '';
+  document.getElementById('addr-phone').value     = a.phone || '';
+  document.getElementById('addr-edit-id').value   = id;
+  document.getElementById('addr-form-title').textContent = '✏️ Edit Address';
+  document.getElementById('addr-form').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function deleteAddr(id) {
+  const a = ADDR_MAP[id];
+  if (!a) return;
+  if (!confirm('Delete "' + a.label + '"?')) return;
+  ADDRS = ADDRS.filter(x => x.id !== id);
+  saveDB(); buildAddrMap(); populateDropdowns(); renderAddrList();
+}
+
+function resetAddrForm() {
+  ['addr-label','addr-invcode','addr-buyer','addr-consname','addr-address','addr-attention','addr-phone'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('addr-edit-id').value = '';
+  document.getElementById('addr-form-title').textContent = '➕ Add New Address';
 }
 
 // ══════════════════════════════════════════
@@ -802,21 +1003,25 @@ function deleteLoc(id) {
 // ══════════════════════════════════════════
 function autoDetect(p) {
   const v = document.getElementById(p+'-inv').value.toUpperCase();
-  let c = '';
-  if (v.includes('PNSGPH')) c='PH'; else if (v.includes('PNSGMY')) c='MY'; else if (v.includes('PNSGAUS') || v.includes('PNSGAU')) c='AUS';
-  if (c) { document.getElementById(p+'-ctry').value=c; fillConsignee(p); document.getElementById(p+'-ctry-badge').innerHTML='<span class="badge">✓ auto</span>'; }
+  let matchId = '';
+  ADDRS.forEach(a => { if (a.invoiceCode && v.includes(a.invoiceCode.toUpperCase())) matchId = a.id; });
+  if (matchId) { document.getElementById(p+'-ctry').value=matchId; fillConsignee(p); document.getElementById(p+'-ctry-badge').innerHTML='<span class="badge">✓ auto</span>'; }
   const m = v.match(/-(\d{8})/);
   if (m) { const r=m[1], ds=r.slice(0,4)+'-'+r.slice(4,6)+'-'+r.slice(6,8); if(!isNaN(new Date(ds).getTime())){ document.getElementById(p+'-date').value=ds; document.getElementById(p+'-date-badge').innerHTML='<span class="badge">✓ auto</span>'; } }
 }
 
 function fillConsignee(p) {
   const c=document.getElementById(p+'-ctry').value, box=document.getElementById(p+'-consignee');
-  if (!c) { box.innerHTML='Select a country or type an invoice number to auto-fill.'; return; }
-  const d=CONS[c]; let h='';
+  if (!c) { box.innerHTML='Select a destination or type an invoice number to auto-fill.'; return; }
+  const d=ADDR_MAP[c]; if(!d){ box.innerHTML='Address not found.'; return; }
+  let h='';
   if (d.buyer) h+=`<strong>Buyer:</strong> ${d.buyer}<br>`;
-  h+=`<strong>Ship To:</strong> ${d.shipTo}`;
-  if (d.contact) h+=`<br><strong>Contact:</strong> ${d.contact}`;
-  if (d.recv)    h+=`<br><strong>Receiving:</strong> ${d.recv}`;
+  const shipTo=[d.consigneeName,d.address].filter(Boolean).join(', ');
+  h+=`<strong>Ship To:</strong> ${shipTo}`;
+  const contactParts=[];
+  if(d.attention) contactParts.push('Attn: '+d.attention);
+  if(d.phone)     contactParts.push('Phone: '+d.phone);
+  if(contactParts.length) h+=`<br><strong>Contact:</strong> ${contactParts.join(' | ')}`;
   box.innerHTML=h;
 }
 
@@ -875,7 +1080,6 @@ function addPL(d={}, flash=false) {
   const c=parseFloat(d.ctn)||0,n=parseFloat(d.net)||0,g=parseFloat(d.gross)||0;
   tr.innerHTML=`<td style="text-align:center;color:#a0aec0;font-size:11px">${i}</td>
     <td><input type="text" value="${xe(d.pallet||'')}" style="width:50px" oninput="calcPL()"></td>
-    <td><input type="text" value="${xe(d.split||'')}" placeholder="e.g. 20-1, 10-2" style="width:86px;font-size:11px" oninput="calcPL()"></td>
     <td><input type="text" value="${xe(d.code||'')}"   style="width:60px" oninput="calcPL()"></td>
     <td><input type="text" value="${xe(d.desc||'')}"   oninput="calcPL()"></td>
     <td><input type="number" value="${d.ctn||''}"   min="0" style="width:40px" oninput="calcPL()"></td>
@@ -889,35 +1093,10 @@ function addPL(d={}, flash=false) {
   tb.appendChild(tr); calcPL();
 }
 function calcPL(){ const r=getPLR(); document.getElementById('pl-ti').textContent=r.length; document.getElementById('pl-tc').textContent=r.reduce((s,x)=>s+x.ctn,0); document.getElementById('pl-tq').textContent=r.reduce((s,x)=>s+x.qty,0); document.getElementById('pl-tn').textContent=r.reduce((s,x)=>s+x.tN,0).toFixed(3); document.getElementById('pl-tg').textContent=r.reduce((s,x)=>s+x.tG,0).toFixed(3); }
-function getPLR(){ return[...document.querySelectorAll('#pl-body tr')].map(tr=>{ const i=tr.querySelectorAll('input'),c=parseFloat(i[4].value)||0,n=parseFloat(i[6].value)||0,g=parseFloat(i[7].value)||0; return{pallet:i[0].value.trim(),split:i[1].value.trim(),code:i[2].value.trim(),desc:i[3].value.trim(),qty:parseFloat(i[5].value)||0,ctn:c,net:n,gross:g,tN:c*n,tG:c*g}; }); }
+function getPLR(){ return[...document.querySelectorAll('#pl-body tr')].map(tr=>{ const i=tr.querySelectorAll('input'),c=parseFloat(i[3].value)||0,n=parseFloat(i[5].value)||0,g=parseFloat(i[6].value)||0; return{pallet:i[0].value.trim(),code:i[1].value.trim(),desc:i[2].value.trim(),qty:parseFloat(i[4].value)||0,ctn:c,net:n,gross:g,tN:c*n,tG:c*g}; }); }
 
-// Parse pallet split string e.g. "20-1, 10-2" → {1: 20, 2: 10}
-function parseSplit(splitStr) {
-  const result = {};
-  if (!splitStr) return result;
-  splitStr.split(',').forEach(part => {
-    const m = part.trim().match(/^(\d+)-(\d+)$/);
-    if (m) result[m[2]] = (result[m[2]] || 0) + parseInt(m[1]);
-  });
-  return result;
-}
-
-// Build palletCTN map from PL rows, respecting split field
-function buildPalletCTN(rows) {
-  const map = {};
-  rows.forEach(r => {
-    if (r.split) {
-      const splits = parseSplit(r.split);
-      Object.entries(splits).forEach(([pNum, ctn]) => {
-        map[pNum] = (map[pNum] || 0) + ctn;
-      });
-    } else {
-      const pNum = r.pallet ? r.pallet.toString().trim() : '';
-      if (pNum) map[pNum] = (map[pNum] || 0) + r.ctn;
-    }
-  });
-  return map;
-}
+// ══════════════════════════════════════════
+// CARTON LABELS
 // ══════════════════════════════════════════
 function catDropdownHTML(selectedCatId) {
   return '<option value="">— Select —</option>' +
@@ -1086,12 +1265,12 @@ function buildPDFHeader(doc, title, prefix) {
   const inv  = document.getElementById(prefix+'-inv').value||'—';
   const date = fmtDate(document.getElementById(prefix+'-date').value);
   const ctry = document.getElementById(prefix+'-ctry').value;
-  const dest = ctry?CONS[ctry].label:'—';
+  const dest = (ctry && ADDR_MAP[ctry]) ? ADDR_MAP[ctry].label.toUpperCase() : '—';
   doc.setFontSize(10);
   doc.text('Invoice No.: '+inv, ml, y); doc.text('Date: '+date, mr, y, {align:'right'}); y+=6;
   doc.text('FROM: SINGAPORE', ml, y); doc.text('TO: '+dest, mr, y, {align:'right'}); y+=6;
-  if (ctry) {
-    const d=CONS[ctry], half=(mr-ml)/2, leftX=ml, rightX=ml+half+4, colW=half-4;
+  if (ctry && ADDR_MAP[ctry]) {
+    const d=ADDR_MAP[ctry], half=(mr-ml)/2, leftX=ml, rightX=ml+half+4, colW=half-4;
     let blockY=y, shipY=y;
     if (d.buyer) {
       doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
@@ -1101,12 +1280,16 @@ function buildPDFHeader(doc, title, prefix) {
       shipY=y;
     }
     const shipX=d.buyer?rightX:leftX, shipW=d.buyer?colW:mr-ml;
+    const shipToLines=[d.consigneeName,d.address].filter(Boolean).join('\n');
+    const contactParts=[];
+    if(d.attention) contactParts.push('Attn: '+d.attention);
+    if(d.phone)     contactParts.push('Phone: '+d.phone);
+    const contactStr=contactParts.join(' | ');
     doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
     doc.text('Ship To:', shipX, shipY); shipY+=4.5;
     doc.setFont('helvetica','normal'); doc.setFontSize(8);
-    doc.splitTextToSize(d.shipTo, shipW).forEach(ln=>{ doc.text(ln,shipX,shipY); shipY+=4; });
-    if (d.contact) { doc.splitTextToSize('Contact: '+d.contact, shipW).forEach(ln=>{ doc.text(ln,shipX,shipY); shipY+=4; }); }
-    if (d.recv)    { doc.text('Receiving: '+d.recv, shipX, shipY); shipY+=4; }
+    doc.splitTextToSize(shipToLines, shipW).forEach(ln=>{ doc.text(ln,shipX,shipY); shipY+=4; });
+    if (contactStr) { doc.splitTextToSize('Contact: '+contactStr, shipW).forEach(ln=>{ doc.text(ln,shipX,shipY); shipY+=4; }); }
     y=Math.max(blockY,shipY)+4;
     doc.setDrawColor(200,200,200); doc.line(ml,y-2,mr,y-2); doc.setDrawColor(0,0,0); y+=2;
   }
@@ -1140,35 +1323,20 @@ function genPL() {
   // ── Discrepancy check: pallet numbers in line items vs pallet dimensions ──
   const ps = getPallets();
   if (ps.length) {
+    // Pallet numbers entered in the dimension section (1, 2, 3...)
     const dimPallets = new Set(ps.map(p => p.num.toString()));
-    // Collect all referenced pallet numbers (from pallet field OR split field)
-    const itemPallets = new Set();
-    rows.forEach(r => {
-      if (r.split) {
-        Object.keys(parseSplit(r.split)).forEach(p => itemPallets.add(p));
-      } else if (r.pallet) {
-        itemPallets.add(r.pallet.toString());
-      }
-    });
+    // Pallet numbers used in line items
+    const itemPallets = new Set(rows.map(r => r.pallet).filter(p => p));
 
+    // Find any item pallets that don't have a matching dimension entry
     const missing = [...itemPallets].filter(p => !dimPallets.has(p));
+    // Find any dimension pallets that have no matching line items
     const extra   = [...dimPallets].filter(p => !itemPallets.has(p));
-    const noDim   = ps.filter(p => !parseFloat(p.l) || !parseFloat(p.w) || !parseFloat(p.h));
 
-    // Check split sums match row CTN
-    const splitMismatch = rows.filter(r => {
-      if (!r.split) return false;
-      const splits = parseSplit(r.split);
-      const splitTotal = Object.values(splits).reduce((s, v) => s + v, 0);
-      return splitTotal !== r.ctn;
-    });
-
-    if (missing.length || extra.length || noDim.length || splitMismatch.length) {
+    if (missing.length || extra.length) {
       let msg = 'Pallet mismatch detected:\n\n';
-      if (missing.length)     msg += `• Pallet(s) ${missing.join(', ')} found in line items but have no dimension entered.\n`;
-      if (extra.length)       msg += `• Pallet(s) ${extra.join(', ')} have dimensions but no matching line items.\n`;
-      if (noDim.length)       msg += `• Pallet(s) ${noDim.map(p => p.num).join(', ')} are missing L*W*H dimensions.\n`;
-      if (splitMismatch.length) msg += `• ${splitMismatch.length} row(s) have a Pallet Split that doesn't add up to the row's CTN.\n`;
+      if (missing.length) msg += `• Pallet(s) ${missing.join(', ')} found in line items but have no dimension entered.\n`;
+      if (extra.length)   msg += `• Pallet(s) ${extra.join(', ')} have dimensions but no matching line items.\n`;
       msg += '\nDo you want to proceed anyway?';
       if (!confirm(msg)) return;
     }
@@ -1177,9 +1345,9 @@ function genPL() {
   const doc=new jsPDF({unit:'mm',format:'a4'});
   const {y,ml}=buildPDFHeader(doc,'PACKING LIST','pl');
   const tC=rows.reduce((s,r)=>s+r.ctn,0),tQ=rows.reduce((s,r)=>s+r.qty,0),tN=rows.reduce((s,r)=>s+r.tN,0),tG=rows.reduce((s,r)=>s+r.tG,0);
-  const body=rows.map((r,i)=>[i+1,r.pallet,r.code,r.desc,r.ctn,r.qty,r.net.toFixed(3),r.gross.toFixed(3),r.split||'',r.tN.toFixed(3),r.tG.toFixed(3)]);
-  body.push(['','','',{content:'TOTAL',styles:{fontStyle:'bold'}},{content:tC,styles:{fontStyle:'bold',halign:'center'}},{content:tQ,styles:{fontStyle:'bold',halign:'center'}},'','','',{content:tN.toFixed(3),styles:{fontStyle:'bold',halign:'right'}},{content:tG.toFixed(3),styles:{fontStyle:'bold',halign:'right'}}]);
-  doc.autoTable({ startY:y+4, head:[['#','Pallet\nNo.','Item\nCode','Item Description','CTN','Qty','Net Wt\n(KGM)','Gross Wt\n(KGM)','Pallet\nSplit','Total Net\nWt','Total Gross\nWt']], body, styles:{fontSize:7.5,cellPadding:2.5,overflow:'linebreak'}, headStyles:{fillColor:[45,55,72],halign:'center',fontStyle:'bold',fontSize:7}, columnStyles:{0:{halign:'center',cellWidth:8},1:{halign:'center',cellWidth:13},2:{halign:'center',cellWidth:14},3:{cellWidth:'auto'},4:{halign:'center',cellWidth:10},5:{halign:'center',cellWidth:11},6:{halign:'right',cellWidth:16},7:{halign:'right',cellWidth:17},8:{halign:'center',cellWidth:18},9:{halign:'right',cellWidth:17},10:{halign:'right',cellWidth:18}}, alternateRowStyles:{fillColor:[247,250,252]} });
+  const body=rows.map((r,i)=>[i+1,r.pallet,r.code,r.desc,r.ctn,r.qty,r.net.toFixed(3),r.gross.toFixed(3),r.tN.toFixed(3),r.tG.toFixed(3)]);
+  body.push(['','','',{content:'TOTAL',styles:{fontStyle:'bold'}},{content:tC,styles:{fontStyle:'bold',halign:'center'}},{content:tQ,styles:{fontStyle:'bold',halign:'center'}},'','',{content:tN.toFixed(3),styles:{fontStyle:'bold',halign:'right'}},{content:tG.toFixed(3),styles:{fontStyle:'bold',halign:'right'}}]);
+  doc.autoTable({ startY:y+4, head:[['#','Pallet\nNo.','Item\nCode','Item Description','CTN','Qty','Net Wt\n(KGM)','Gross Wt\n(KGM)','Total Net\nWt','Total Gross\nWt']], body, styles:{fontSize:7.5,cellPadding:2.5,overflow:'linebreak'}, headStyles:{fillColor:[45,55,72],halign:'center',fontStyle:'bold',fontSize:7}, columnStyles:{0:{halign:'center',cellWidth:8},1:{halign:'center',cellWidth:14},2:{halign:'center',cellWidth:15},3:{cellWidth:'auto'},4:{halign:'center',cellWidth:11},5:{halign:'center',cellWidth:12},6:{halign:'right',cellWidth:18},7:{halign:'right',cellWidth:19},8:{halign:'right',cellWidth:19},9:{halign:'right',cellWidth:20}}, alternateRowStyles:{fillColor:[247,250,252]} });
   let fy = doc.lastAutoTable.finalY + 8;
   const PAGE_H = 287; // A4 height in mm with margin
   const MARGIN_BOTTOM = 15;
@@ -1197,8 +1365,12 @@ function genPL() {
   const psValid = psAll.filter(p => parseFloat(p.l) && parseFloat(p.w) && parseFloat(p.h));
 
   if (psValid.length) {
-    // Group CTN by pallet number (respects split field)
-    const palletCTN = buildPalletCTN(getPLR());
+    // Group CTN by pallet number from line items
+    const palletCTN = {};
+    getPLR().forEach(r => {
+      const pNum = r.pallet ? r.pallet.toString().trim() : '';
+      if (pNum) palletCTN[pNum] = (palletCTN[pNum] || 0) + r.ctn;
+    });
 
     // Calculate CBM per pallet
     let totalCBM = 0;
@@ -1227,12 +1399,10 @@ function genPL() {
       doc.text(`Pallet ${p.num}: ${p.l}cm(L)*${p.w}cm(W)*${p.h}cm(H)${ctnTxt}${cbmTxt}`, ml, fy); fy += 5;
     });
 
-    fy += 2;
-    checkPage(10);
-    doc.setFont('helvetica','bold');
-    doc.text(`TOTAL CTN: ${tC} CTN`, ml, fy); fy += 5;
     if (totalCBM > 0) {
+      fy += 2;
       checkPage(5);
+      doc.setFont('helvetica','bold');
       doc.text(`TOTAL CBM: ${totalCBM.toFixed(3)} m³`, ml, fy);
     }
   }
@@ -1255,7 +1425,11 @@ function genPalletLabels() {
   const total   = ps.length;
 
   // Group CTN by pallet number from line items
-  const palletCTN = buildPalletCTN(getPLR());
+  const palletCTN = {};
+  getPLR().forEach(r => {
+    const pNum = r.pallet ? r.pallet.toString().trim() : '';
+    if (pNum) palletCTN[pNum] = (palletCTN[pNum] || 0) + r.ctn;
+  });
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
   const W = 210, H = 297;
@@ -1300,10 +1474,10 @@ function genPalletLabels() {
     const GAP = 5;
 
     // Shipment code
-    field('SHIPMENT CODE', inv, fy, 36, 24, true); fy += 36 + GAP;
+    field('SHIPMENT CODE', inv, fy, 36, 18, true); fy += 36 + GAP;
 
     // Route
-    field('ROUTE', route, fy, 36, 24, true); fy += 36 + GAP;
+    field('ROUTE', route, fy, 36, 18, true); fy += 36 + GAP;
 
     // Pallet number — large prominent
     doc.setDrawColor(26, 26, 46);
@@ -1314,19 +1488,26 @@ function genPalletLabels() {
     doc.setTextColor(180, 180, 180);
     doc.text('PALLET', ML + 6, fy + 12);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(80);
+    doc.setFontSize(64);
     doc.setTextColor(255, 255, 255);
-    doc.text(`${p.num}`, ML + 6, fy + 58);
-    const bigNumWidth = doc.getTextWidth(`${p.num}`);
+    doc.text(`${p.num}`, ML + 6, fy + 56);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(14);
+    doc.setFontSize(16);
     doc.setTextColor(180, 180, 180);
-    doc.text(`of  ${total}`, ML + 6 + bigNumWidth + 3, fy + 50);
+    doc.text(`of  ${total}`, ML + 6 + doc.getTextWidth(`${p.num}`) + 4, fy + 56);
     doc.setTextColor(0, 0, 0);
     fy += 70 + GAP;
 
     // Carton qty
-    field('CARTON QTY', ctn, fy, 50, 40, true); fy += 50 + GAP;
+    field('CARTON QTY', ctn, fy, 50, 28, true); fy += 50 + GAP;
+
+    // Footer line
+    doc.setDrawColor(220, 220, 220);
+    doc.line(ML, H - 18, MR, H - 18);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(160, 160, 160);
+    doc.text('Purest Nest Pte Ltd  |  UEN 201909055C  |  Singapore', W / 2, H - 10, { align: 'center' });
   });
 
   doc.save(`PalletLabels_${inv}.pdf`);
