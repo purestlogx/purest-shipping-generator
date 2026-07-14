@@ -173,7 +173,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: #FDF8F2; color
   <div class="logo">PN</div>
   <div>
     <h1>Purest Nest Document Generator</h1>
-    <p>Commercial Invoice · Packing List · Carton Labels · v2.0</p>
+    <p>Commercial Invoice · Packing List · Carton Labels · v2.1</p>
   </div>
   <div class="topbar-actions">
     <span class="who" id="who"></span>
@@ -394,6 +394,9 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: #FDF8F2; color
         <div class="settings-nav-item" id="snav-addr" onclick="switchSettings('addr')">
           <span class="settings-nav-icon">📍</span> Address Manager
         </div>
+        <div class="settings-nav-item" id="snav-users" onclick="switchSettings('users')">
+          <span class="settings-nav-icon">👥</span> User Management
+        </div>
       </div>
 
       <!-- ── Content area ── -->
@@ -525,6 +528,28 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: #FDF8F2; color
           </div>
         </div><!-- /settings-addr -->
 
+        <!-- User Management content -->
+        <div id="settings-users" style="display:none">
+          <div class="section">
+            <h2>Users <span>Everyone who signs in appears here — the first ever sign-in becomes Admin</span></h2>
+            <div id="users-list" class="skm-empty">Loading users…</div>
+            <div class="skm-add-row" style="margin-top:16px">
+              <div class="field"><label>Pre-authorize Email</label><input type="email" id="new-user-email" placeholder="colleague@thepurestgroup.com"></div>
+              <div class="field" style="max-width:140px"><label>Role</label><select id="new-user-role"><option value="User">User</option><option value="Admin">Admin</option></select></div>
+              <button class="btn-save" onclick="addUserEntry()">+ Add User</button>
+            </div>
+            <p class="paste-hint">💡 Adding an email here sets the person's role before their first sign-in. The login account itself is created in Firebase Console → Authentication.</p>
+          </div>
+          <div class="section">
+            <h2>Role Permissions <span>Changes save automatically — Admins always keep full access</span></h2>
+            <table class="tbl" style="margin-top:4px">
+              <thead><tr><th class="left">Permission</th><th style="width:90px">Admin</th><th style="width:90px">User</th></tr></thead>
+              <tbody id="perms-body"></tbody>
+            </table>
+          </div>
+        </div><!-- /settings-users -->
+
+
       </div><!-- /settings-content -->
     </div><!-- /settings-layout -->
   </div>
@@ -587,12 +612,15 @@ function doLogout(idle){ if (fbauth) fbauth.signOut(); if (idle) toast('Signed o
 if (fbauth) {
   fbauth.onAuthStateChanged(async function(user){
     if (user) {
+      const okRole = await resolveUserRole(user);
+      if (!okRole) return; // account disabled — signed out
       document.getElementById('login').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       document.getElementById('who').textContent = user.email || '';
       resetIdle();
       await loadCloudData();
       initUI();
+      applyPermissions();
     } else {
       document.getElementById('app').style.display = 'none';
       document.getElementById('login').style.display = 'flex';
@@ -606,6 +634,135 @@ if (fbauth) {
     const m = document.getElementById('lg-msg');
     if (m) { m.className='login-msg err'; m.textContent='Firebase failed to load. Check your connection.'; }
   });
+}
+
+// ══════════════════════════════════════════
+// USER MANAGEMENT (RBAC) — shipping_generator/{users,permissions}
+// ══════════════════════════════════════════
+function USERS_DOC(){ return fbdb.collection('shipping_generator').doc('users'); }
+function PERMS_DOC(){ return fbdb.collection('shipping_generator').doc('permissions'); }
+const DEFAULT_PERMS = {
+  Admin: { accessSettings:true,  manageUsers:true  },
+  User:  { accessSettings:false, manageUsers:false }
+};
+const PERM_DEFS = [
+  { key:'accessSettings', label:'Access Settings', desc:'View and edit SKU Manager and Address Manager master data' },
+  { key:'manageUsers',    label:'Manage users & permissions', desc:'Add, disable, remove users and edit role permissions' }
+];
+let currentRole = null;
+let permsConfig = JSON.parse(JSON.stringify(DEFAULT_PERMS));
+
+function eKey(email){ return String(email||'').toLowerCase().replace(/[.#$\[\]\/]/g, '_'); }
+
+async function resolveUserRole(user){
+  try {
+    const pSnap = await PERMS_DOC().get();
+    if (pSnap.exists) permsConfig = Object.assign(JSON.parse(JSON.stringify(DEFAULT_PERMS)), pSnap.data());
+    const uSnap = await USERS_DOC().get();
+    const data  = uSnap.exists ? (uSnap.data() || {}) : {};
+    const key   = eKey(user.email);
+    const isFirst = !Object.keys(data).length;
+    if (!data[key]) {
+      const u = {}; u[key] = { email:user.email, role:isFirst?'Admin':'User', disabled:false, addedAt:new Date().toISOString() };
+      await USERS_DOC().set(u, { merge:true });
+      currentRole = isFirst ? 'Admin' : 'User';
+    } else {
+      if (data[key].disabled) {
+        toast('This account has been disabled. Contact your admin.', true);
+        fbauth.signOut();
+        return false;
+      }
+      currentRole = data[key].role || 'User';
+    }
+  } catch(e){ console.warn('Role check failed — defaulting to User.', e); currentRole = 'User'; }
+  return true;
+}
+
+function can(perm){
+  if (currentRole === 'Admin') return true;
+  const p = permsConfig[currentRole] || permsConfig['User'] || {};
+  return !!p[perm];
+}
+
+function applyPermissions(){
+  const uNav = document.getElementById('snav-users');
+  if (uNav) uNav.style.display = can('manageUsers') ? 'flex' : 'none';
+  const sTab = document.getElementById('tab-skm');
+  if (sTab) sTab.style.display = (can('accessSettings') || can('manageUsers')) ? '' : 'none';
+}
+
+async function loadUsers(){
+  const el = document.getElementById('users-list');
+  try {
+    const snap  = await USERS_DOC().get();
+    const data  = snap.exists ? (snap.data() || {}) : {};
+    const users = Object.values(data).sort(function(a,b){ return String(a.email).localeCompare(String(b.email)); });
+    if (!users.length){ el.innerHTML = 'No users yet — the first person to sign in becomes Admin.'; return; }
+    el.className = '';
+    el.innerHTML = '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th class="left">Email</th><th style="width:110px">Role</th><th style="width:90px">Status</th><th style="width:160px"></th></tr></thead><tbody>' +
+      users.map(function(u){
+        const isMe = fbauth.currentUser && u.email === fbauth.currentUser.email;
+        const role = u.role || 'User';
+        const roleCell = isMe
+          ? '<span class="badge">' + xe(role) + ' (you)</span>'
+          : '<select onchange="changeUserRole(\'' + xe(u.email) + '\', this.value)" style="font-size:12px;padding:4px 6px"><option value="User"' + (role==='User'?' selected':'') + '>User</option><option value="Admin"' + (role==='Admin'?' selected':'') + '>Admin</option></select>';
+        const status  = u.disabled ? '<span class="tag-unmatched">disabled</span>' : '<span class="tag-matched">active</span>';
+        const actions = isMe ? '' :
+          '<button class="btn-export" style="padding:4px 10px;font-size:11px" onclick="toggleUserDisabled(\'' + xe(u.email) + '\', ' + (!u.disabled) + ')">' + (u.disabled?'Enable':'Disable') + '</button> ' +
+          '<button class="btn-del" onclick="removeUser(\'' + xe(u.email) + '\')">×</button>';
+        return '<tr><td>' + xe(u.email) + '</td><td>' + roleCell + '</td><td>' + status + '</td><td>' + actions + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  } catch(e){ console.error(e); el.textContent = 'Failed to load users.'; }
+}
+
+async function changeUserRole(email, role){
+  try { const u={}; u[eKey(email)]={ email:email, role:role }; await USERS_DOC().set(u,{merge:true}); toast('Role updated.'); }
+  catch(e){ toast('Could not update role.', true); }
+}
+async function toggleUserDisabled(email, disable){
+  try { const u={}; u[eKey(email)]={ email:email, disabled:disable }; await USERS_DOC().set(u,{merge:true}); loadUsers(); toast(disable?'User disabled — takes effect at their next sign-in.':'User re-enabled.'); }
+  catch(e){ toast('Could not update user.', true); }
+}
+async function removeUser(email){
+  if (!(await askConfirm('Remove "' + email + '" from the list? Their Firebase login still exists — they will re-appear as User if they sign in again.', 'Remove'))) return;
+  try {
+    const o={}; o[eKey(email)] = firebase.firestore.FieldValue.delete();
+    await USERS_DOC().update(o);
+    loadUsers();
+  } catch(e){ toast('Could not remove user.', true); }
+}
+async function addUserEntry(){
+  const inp   = document.getElementById('new-user-email');
+  const email = inp.value.trim().toLowerCase();
+  const role  = document.getElementById('new-user-role').value;
+  if (!email || email.indexOf('@') < 0){ toast('Enter a valid email address.', true); return; }
+  try {
+    const u={}; u[eKey(email)]={ email:email, role:role, disabled:false, addedAt:new Date().toISOString() };
+    await USERS_DOC().set(u,{merge:true});
+    inp.value=''; document.getElementById('new-user-role').value='User';
+    toast('User added.');
+    loadUsers();
+  } catch(e){ toast('Could not add user.', true); }
+}
+
+function renderPerms(){
+  const tb = document.getElementById('perms-body');
+  if (!tb) return;
+  tb.innerHTML = PERM_DEFS.map(function(p){
+    function cell(role){
+      const isAdmin = role === 'Admin';
+      const checked = isAdmin ? true : !!((permsConfig[role]||{})[p.key]);
+      return '<td style="text-align:center"><input type="checkbox"' + (checked?' checked':'') + (isAdmin?' disabled':'') + ' onchange="togglePerm(\'' + role + '\',\'' + p.key + '\', this.checked)"></td>';
+    }
+    return '<tr><td><strong>' + p.label + '</strong><br><span style="font-size:11px;color:#9A9384">' + p.desc + '</span></td>' + cell('Admin') + cell('User') + '</tr>';
+  }).join('');
+}
+async function togglePerm(role, key, value){
+  if (!permsConfig[role]) permsConfig[role] = {};
+  permsConfig[role][key] = value;
+  try { await PERMS_DOC().set(permsConfig); toast('Permissions saved.'); }
+  catch(e){ toast('Could not save permissions.', true); }
+  applyPermissions();
 }
 
 function mirrorLocal(){
@@ -776,7 +933,7 @@ function switchTab(t) {
 }
 
 function switchSettings(cat) {
-  ['sku','addr'].forEach(c => {
+  ['sku','addr','users'].forEach(c => {
     document.getElementById('settings-'+c).style.display = 'none';
     document.getElementById('snav-'+c).classList.remove('active');
   });
@@ -785,6 +942,7 @@ function switchSettings(cat) {
   document.getElementById('snav-'+cat).classList.add('active');
   if (cat === 'sku') renderSKMTables();
   if (cat === 'addr') renderAddrList();
+  if (cat === 'users') { loadUsers(); renderPerms(); }
 }
 
 // ══════════════════════════════════════════
