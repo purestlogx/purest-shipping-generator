@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Purest Nest Document Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', system-ui, sans-serif; background: #FDF8F2; color: #004C4F; }
+.app-header { background: #004C4F; color: white; padding: 18px 28px; display: flex; align-items: center; gap: 14px; }
+.logo { width: 42px; height: 42px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #004C4F; font-size: 18px; }
+.app-header h1 { font-size: 20px; font-weight: 700; }
+.app-header p { font-size: 12px; opacity: 0.7; }
+.container { max-width: 980px; margin: 0 auto; padding: 0 16px 40px; }
+.tabs { display: flex; margin: 24px 0 0; flex-wrap: wrap; }
+.tab { padding: 12px 24px; font-size: 14px; font-weight: 700; cursor: pointer; border-radius: 12px 12px 0 0; border: 2px solid transparent; color: #6B6456; background: #E7E0D4; margin-right: 4px; margin-bottom: -2px; }
+.tab.active-ci  { background: #fff; color: #004C4F; border-color: #CBDAD9; border-bottom-color: white; }
+.tab.active-pl  { background: #fff; color: #004C4F; border-color: #CBDAD9; border-bottom-color: white; }
+.tab.active-cl  { background: #fff; color: #375428; border-color: #CBDAD9; border-bottom-color: white; }
+.tab.active-skm { background: #fff; color: #004C4F; border-color: #CBDAD9; border-bottom-color: white; }
+.panel { display: none; background: white; border-radius: 0 12px 12px 12px; border: 2px solid #E7E0D4; }
+.panel.show { display: block; }
+.panel-ci  { border-color: #CBDAD9; }
+.panel-pl  { border-color: #CBDAD9; }
+.panel-cl  { border-color: #CBDAD9; }
+.panel-skm { border-color: #CBDAD9; }
+.section { padding: 22px 24px; border-bottom: 1px solid #FDF8F2; }
+.section:last-child { border-bottom: none; }
+.section h2 { font-size: 13px; font-weight: 700; color: #9A9384; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+.section h2 span { font-size: 11px; font-weight: 400; color: #C9C0AE; text-transform: none; letter-spacing: 0; margin-left: 8px; }
+.row { display: flex; gap: 14px; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 150px; }
+.field label { font-size: 12px; font-weight: 600; color: #6B6456; }
+.field input, .field select { padding: 9px 12px; border: 1.5px solid #E7E0D4; border-radius: 8px; font-size: 14px; outline: none; width: 100%; transition: border 0.2s; }
+.field input:focus, .field select:focus { border-color: #004C4F; }
+.consignee-box { background: #FBF6EE; border: 1.5px solid #E7E0D4; border-radius: 8px; padding: 12px 14px; font-size: 13px; line-height: 1.7; color: #4A4A42; margin-top: 12px; }
+.badge { display: inline-block; background: #EDF4F3; color: #004C4F; border: 1px solid #CBDAD9; border-radius: 20px; font-size: 11px; font-weight: 600; padding: 1px 8px; margin-left: 6px; }
+.col-map { display: flex; flex-wrap: wrap; margin-bottom: 10px; }
+.col-map-item { background: #F2ECE1; border: 1px solid #E7E0D4; padding: 4px 9px; font-size: 11px; color: #4A4A42; }
+.col-map-item:first-child { border-radius: 6px 0 0 6px; }
+.col-map-item:last-child  { border-radius: 0 6px 6px 0; }
+.col-map-item span { display: block; font-size: 9px; color: #9A9384; text-transform: uppercase; }
+.paste-area { width: 100%; padding: 12px 14px; border: 2px dashed #CBDAD9; border-radius: 10px; font-size: 13px; font-family: monospace; background: #EDF4F3; color: #004C4F; outline: none; resize: none; min-height: 52px; }
+.paste-hint { font-size: 11.5px; color: #6B6456; margin-top: 5px; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 14px; }
+.tbl th { background: #004C4F; color: white; padding: 8px 6px; text-align: center; font-size: 10.5px; font-weight: 600; }
+.tbl th.left { text-align: left; padding-left: 8px; }
+.tbl td { padding: 5px 5px; border-bottom: 1px solid #E7E0D4; vertical-align: middle; }
+.tbl tr:nth-child(even) td { background: #FBF6EE; }
+.tbl input { width: 100%; padding: 5px 6px; border: 1.5px solid #E7E0D4; border-radius: 6px; font-size: 12px; outline: none; }
+.tbl input:focus { border-color: #004C4F; }
+.tbl select { width: 100%; padding: 5px 6px; border: 1.5px solid #E7E0D4; border-radius: 6px; font-size: 12px; outline: none; background: white; }
+.tbl select:focus { border-color: #004C4F; }
+.rtotal { text-align: right; padding-right: 8px; font-size: 12px; color: #4A4A42; white-space: nowrap; }
+.totals-bar { display: flex; gap: 16px; background: #FBF6EE; border: 1.5px solid #E7E0D4; border-radius: 8px; padding: 10px 16px; margin-top: 10px; flex-wrap: wrap; }
+.totals-bar span { font-size: 13px; color: #4A4A42; }
+.totals-bar strong { color: #004C4F; }
+.btn-add   { padding: 8px 16px; background: #EDF4F3; color: #004C4F; border: 1.5px solid #CBDAD9; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 12px; }
+.btn-add:hover { background: #CBDAD9; }
+.btn-clear { padding: 8px 16px; background: #FAEDEC; color: #8B1E1E; border: 1.5px solid #EBD0CE; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 12px; margin-left: 8px; }
+.btn-del   { background: none; border: none; cursor: pointer; color: #A94442; font-size: 16px; padding: 2px 5px; }
+.pallet-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.pallet-row label { font-size: 12px; font-weight: 600; color: #6B6456; min-width: 58px; }
+.pallet-row input { padding: 7px 10px; border: 1.5px solid #E7E0D4; border-radius: 8px; font-size: 13px; outline: none; }
+.pallet-row input.dim-combined { width: 160px; }
+.pallet-row input.dim-single { width: 80px; }
+.gen-section { padding: 20px 24px; }
+.btn-gen { padding: 13px 28px; border: none; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: 700; transition: all 0.2s; }
+.btn-ci-gen { background: linear-gradient(135deg,#004C4F,#375428); color: white; }
+.btn-pl-gen { background: linear-gradient(135deg,#004C4F,#375428); color: white; }
+.btn-cl-gen { background: linear-gradient(135deg,#004C4F,#375428); color: white; }
+.btn-gen:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+.notice { font-size: 12px; color: #9A9384; margin-top: 10px; }
+@keyframes flashGreen { 0%{background:#DCEAE2} 100%{background:transparent} }
+.flash td { animation: flashGreen 0.6s ease; }
+
+/* SKU Manager styles */
+.skm-add-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 18px; padding: 16px 18px; background: #FBF6EE; border: 1.5px solid #E7E0D4; border-radius: 10px; }
+.skm-add-row .field { min-width: 130px; }
+.btn-export { padding: 7px 14px; background: #EDF4F3; color: #004C4F; border: 1.5px solid #CBDAD9; border-radius: 8px; cursor: pointer; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.btn-export:hover { background: #CBDAD9; }
+.btn-import-label { padding: 7px 14px; background: #EDF4F3; color: #004C4F; border: 1.5px solid #CBDAD9; border-radius: 8px; cursor: pointer; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.btn-save { padding: 9px 20px; background: #004C4F; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; transition: background 0.2s; align-self: flex-end; }
+.btn-save:hover { background: #375428; }
+.skm-empty { text-align: center; color: #9A9384; font-size: 13px; padding: 24px 0; }
+.tag-unmatched { display: inline-block; background: #FAEDEC; color: #8B1E1E; border: 1px solid #EBD0CE; border-radius: 12px; font-size: 10px; font-weight: 600; padding: 1px 7px; margin-left: 5px; }
+.tag-matched { display: inline-block; background: #EDF4F3; color: #004C4F; border: 1px solid #CBDAD9; border-radius: 12px; font-size: 10px; font-weight: 600; padding: 1px 7px; margin-left: 5px; }
+/* Settings layout */
+.settings-layout { display: flex; gap: 0; min-height: 400px; }
+.settings-sidebar { width: 190px; flex-shrink: 0; border-right: 1.5px solid #E7E0D4; padding: 20px 0; background: #FBF6EE; border-radius: 0 0 0 12px; }
+.settings-nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; cursor: pointer; font-size: 13.5px; font-weight: 500; color: #4A4A42; border-left: 3px solid transparent; transition: all 0.15s; }
+.settings-nav-item:hover { background: #F2ECE1; color: #004C4F; }
+.settings-nav-item.active { background: #EDF4F3; color: #004C4F; border-left-color: #004C4F; font-weight: 700; }
+.settings-nav-icon { font-size: 16px; }
+.settings-content { flex: 1; padding: 0; overflow: hidden; }
+.settings-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 320px; color: #9A9384; font-size: 14px; gap: 10px; }
+.settings-placeholder .ph-icon { font-size: 36px; }
+/* Address Manager styles */
+.addr-card { background: #fff; border: 1.5px solid #E7E0D4; border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; position: relative; }
+.addr-card-label { font-size: 13px; font-weight: 700; color: #004C4F; margin-bottom: 6px; }
+.addr-card-detail { font-size: 12px; color: #6B6456; line-height: 1.6; }
+.addr-card-actions { position: absolute; top: 14px; right: 14px; display: flex; gap: 6px; }
+.addr-form { background: #FBF6EE; border: 1.5px solid #E7E0D4; border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+.addr-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.addr-form-grid .field.full { grid-column: 1 / -1; }
+.addr-form-actions { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; }
+.btn-cancel { padding: 8px 16px; background: #F2ECE1; color: #4A4A42; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.btn-cancel:hover { background: #E7E0D4; }
+/* ── Brand typography + auth ── */
+.app-header h1, .section h2, .addr-card-label { font-family: 'EB Garamond', Georgia, serif; letter-spacing: 0; }
+.btn-gen, .btn-add, .btn-save, .btn-export, .btn-import-label, .btn-clear, .btn-cancel { text-transform: uppercase; letter-spacing: 0.05em; }
+#login { position: fixed; inset: 0; background: #FDF8F2; display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+.login-card { background: #fff; border: 1px solid #E7E0D4; border-radius: 14px; padding: 32px 30px; width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,76,79,.08); }
+.login-card h2 { font-family: 'EB Garamond', Georgia, serif; font-size: 24px; color: #004C4F; margin-bottom: 6px; }
+.login-card p.tag { font-size: 12px; color: #6B6456; margin-bottom: 22px; }
+.login-card .lf { margin-bottom: 14px; }
+.login-card input { padding: 10px 12px; border: 1.5px solid #E7E0D4; border-radius: 8px; font-size: 14px; width: 100%; outline: none; }
+.login-card input:focus { border-color: #004C4F; }
+.login-btn { width: 100%; padding: 11px; background: #004C4F; color: #FDF8F2; border: none; border-radius: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; }
+.login-btn:hover { background: #375428; }
+.login-btn:disabled { opacity: .5; }
+.login-msg { font-size: 12px; margin-top: 14px; min-height: 16px; }
+.login-msg.err { color: #8B1E1E; }
+.login-msg.warn { color: #7A5A12; }
+#app { display: none; }
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.topbar-actions .who { font-size: 12px; opacity: .75; }
+.btn-signout { background: transparent; border: 1px solid rgba(253,248,242,.4); color: #FDF8F2; padding: 6px 14px; border-radius: 7px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; }
+.btn-signout:hover { background: rgba(253,248,242,.12); }
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #004C4F; color: #FDF8F2; padding: 10px 20px; border-radius: 10px; font-size: 13px; z-index: 120; opacity: 0; transition: opacity .25s; pointer-events: none; }
+#toast.show { opacity: 1; }
+#toast.err { background: #8B1E1E; }
+/* ── v2: unified header, quick-add, confirm modal ── */
+.shipment-header{background:#fff;border:2px solid #CBDAD9;border-radius:12px;margin:24px 0 0}
+.shipment-header h2{color:#004C4F}
+.quick-add{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;background:#FBF6EE;border:1px solid #E7E0D4;border-radius:10px;padding:14px 15px;margin-bottom:4px}
+.quick-add .field{min-width:100px}
+.quick-add .field.grow{flex:2.2;min-width:170px}
+.quick-add .btn-save{align-self:flex-end}
+.qa-divider{display:flex;align-items:center;gap:12px;margin:14px 0 12px;color:#9A9384;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.qa-divider::before,.qa-divider::after{content:"";height:1px;background:#E7E0D4;flex:1}
+.hint-lbl{font-size:11px;font-weight:400;color:#9A9384;text-transform:none;letter-spacing:0}
+#cfm-overlay{position:fixed;inset:0;background:rgba(43,41,37,.45);display:none;align-items:center;justify-content:center;z-index:130;padding:20px}
+#cfm-overlay.show{display:flex}
+.cfm-card{background:#fff;border-radius:14px;padding:24px 26px;max-width:430px;width:100%;box-shadow:0 12px 40px rgba(0,76,79,.18)}
+.cfm-msg{font-size:14px;color:#004C4F;line-height:1.55;white-space:pre-line;margin-bottom:20px}
+.cfm-actions{display:flex;gap:10px;justify-content:flex-end}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="login-card">
+    <h2>Document Generator</h2>
+    <p class="tag">Purest Nest · sign in to continue</p>
+    <div class="lf"><input id="lg-email" type="email" placeholder="you@thepurestgroup.com" autocomplete="username"></div>
+    <div class="lf"><input id="lg-pass" type="password" placeholder="password" autocomplete="current-password"></div>
+    <button class="login-btn" id="lg-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-msg" id="lg-msg"></div>
+  </div>
+</div>
+
+<div id="app">
+<div class="app-header">
+  <div class="logo">PN</div>
+  <div>
+    <h1>Purest Nest Document Generator</h1>
+    <p>Commercial Invoice · Packing List · Carton Labels · v2.0</p>
+  </div>
+  <div class="topbar-actions">
+    <span class="who" id="who"></span>
+    <button class="btn-signout" onclick="doLogout()">Sign out</button>
+  </div>
+</div>
+
+<div class="container">
+    <div class="section shipment-header">
+    <h2>Shipment <span>Entered once — used by every document</span></h2>
+    <div class="row">
+      <div class="field"><label>Ref / Invoice No. <span id="sh-ref-badge"></span></label><input type="text" id="sh-ref" placeholder="e.g. PNSGPH-20260402-AN" oninput="autoDetect()"></div>
+      <div class="field"><label>Date <span id="sh-date-badge"></span></label><input type="date" id="sh-date"></div>
+      <div class="field"><label>Destination <span id="sh-dest-badge"></span></label>
+        <select id="sh-dest" onchange="fillConsignee()"><option value="">— Select —</option></select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div class="field"><label>PO No. <span class="hint-lbl">carton labels</span></label><input type="text" id="sh-po" placeholder="e.g. PNSG-PH-20260402"></div>
+      <div class="field"><label>Delivery Location <span class="hint-lbl">carton labels</span></label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="sh-loc" style="flex:1"><option value="">— Select —</option></select>
+          <button class="btn-add" style="margin-top:0;white-space:nowrap;padding:8px 12px;" onclick="toggleLocEditor()">✏️ Edit</button>
+        </div>
+        <div id="loc-editor" style="display:none;margin-top:10px;background:#FBF6EE;border:1.5px solid #E7E0D4;border-radius:8px;padding:12px;">
+          <div style="font-size:11px;font-weight:600;color:#6B6456;margin-bottom:8px;">MANAGE LOCATIONS</div>
+          <div id="loc-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="loc-new-input" placeholder="Add new location..." style="flex:1;padding:7px 10px;border:1.5px solid #E7E0D4;border-radius:8px;font-size:13px;outline:none;" onkeydown="if(event.key==='Enter')addLocInline()">
+            <button class="btn-save" style="padding:7px 14px;" onclick="addLocInline()">+ Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="consignee-box" id="sh-consignee">Select a destination or type a ref number to auto-fill.</div>
+  </div>
+  <div class="tabs">
+    <div class="tab active-ci" id="tab-ci"  onclick="switchTab('ci')">🧾 Commercial Invoice</div>
+    <div class="tab"           id="tab-pl"  onclick="switchTab('pl')">📦 Packing List</div>
+    <div class="tab"           id="tab-cl"  onclick="switchTab('cl')">🏷️ Carton Labels</div>
+    <div class="tab"           id="tab-skm" onclick="switchTab('skm')">⚙️ Settings</div>
+  </div>
+
+  <!-- ═══ CI PANEL ═══ -->
+  <div class="panel panel-ci show" id="panel-ci">
+    <div class="section">
+      <h2>Line Items</h2>
+      <div class="col-map">
+        <div class="col-map-item"><span>Col A</span>Item No.</div>
+        <div class="col-map-item"><span>Col B</span>Description</div>
+        <div class="col-map-item"><span>Col C</span>Qty</div>
+        <div class="col-map-item"><span>Col D</span>Unit Price (SGD)</div>
+      </div>
+      <textarea class="paste-area" id="ci-paste" rows="2" placeholder="Copy full table from Excel (incl. header) → click here → Ctrl+V"></textarea>
+      <div class="paste-hint">💡 Paste the whole table at once — header is auto-skipped.</div>
+      <div class="qa-divider">or add one manually</div>
+      <div class="quick-add">
+        <div class="field grow"><label>Item Description</label><input type="text" id="ci-qa-desc" placeholder="e.g. Collagen Glow Melts 30s" onkeydown="if(event.key==='Enter')quickAddCI()"></div>
+        <div class="field" style="max-width:90px"><label>Qty</label><input type="number" id="ci-qa-qty" min="0" onkeydown="if(event.key==='Enter')quickAddCI()"></div>
+        <div class="field" style="max-width:140px"><label>Unit Price (SGD)</label><input type="number" id="ci-qa-price" step="0.01" onkeydown="if(event.key==='Enter')quickAddCI()"></div>
+        <button class="btn-save" onclick="quickAddCI()">+ Add</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:30px">#</th>
+            <th class="left" style="min-width:200px">Item Description</th>
+            <th style="width:70px">Qty</th>
+            <th style="width:105px">Unit Price (SGD)</th>
+            <th style="width:115px">Total (SGD)</th>
+            <th style="width:30px"></th>
+          </tr></thead>
+          <tbody id="ci-body"></tbody>
+        </table>
+      </div>
+      <div class="totals-bar">
+        <span>Items: <strong id="ci-ti">0</strong></span>
+        <span>Total Qty: <strong id="ci-tq">0</strong></span>
+        <span>Total Value: <strong id="ci-tv">SGD 0.00</strong></span>
+      </div>
+      <button class="btn-add" onclick="addCI()">+ Add Row</button>
+      <button class="btn-clear" onclick="clearTbl('ci')">✕ Clear All</button>
+    </div>
+    <div class="gen-section">
+      <button class="btn-gen btn-ci-gen" onclick="genCI()">⬇ Download Commercial Invoice (PDF)</button>
+      <p class="notice">PDF will download directly to your device.</p>
+    </div>
+  </div>
+
+  <!-- ═══ PL PANEL ═══ -->
+  <div class="panel panel-pl" id="panel-pl">
+    <div class="section">
+      <h2>Line Items</h2>
+      <div class="col-map">
+        <div class="col-map-item"><span>Col A</span>Pallet No.</div>
+        <div class="col-map-item"><span>Col B</span>Item Code</div>
+        <div class="col-map-item"><span>Col C</span>Description</div>
+        <div class="col-map-item"><span>Col D</span>CTN</div>
+        <div class="col-map-item"><span>Col E</span>Qty</div>
+        <div class="col-map-item"><span>Col F</span>Net Wt</div>
+        <div class="col-map-item"><span>Col G</span>Gross Wt</div>
+        <div class="col-map-item" style="border-color:#DCEAE2;background:#EDF4F3"><span style="background:#375428">✎</span>Pallet Split <span style="font-size:10px;color:#9A9384">(manual only)</span></div>
+      </div>
+      <textarea class="paste-area" id="pl-paste" rows="2" placeholder="Copy full table from Excel (incl. header) → click here → Ctrl+V"></textarea>
+      <div class="paste-hint">💡 Paste the whole table at once — header is auto-skipped.</div>
+      <div class="qa-divider">or add one manually</div>
+      <div class="quick-add">
+        <div class="field" style="max-width:70px"><label>Pallet</label><input type="text" id="pl-qa-pallet"></div>
+        <div class="field" style="max-width:95px"><label>Split</label><input type="text" id="pl-qa-split" placeholder="20-1,10-2"></div>
+        <div class="field" style="max-width:90px"><label>Item Code</label><input type="text" id="pl-qa-code"></div>
+        <div class="field grow"><label>Description</label><input type="text" id="pl-qa-desc"></div>
+        <div class="field" style="max-width:60px"><label>CTN</label><input type="number" id="pl-qa-ctn" min="0"></div>
+        <div class="field" style="max-width:60px"><label>Qty</label><input type="number" id="pl-qa-qty" min="0"></div>
+        <div class="field" style="max-width:85px"><label>Net Wt</label><input type="number" id="pl-qa-net" step="0.001"></div>
+        <div class="field" style="max-width:85px"><label>Gross Wt</label><input type="number" id="pl-qa-gross" step="0.001"></div>
+        <button class="btn-save" onclick="quickAddPL()">+ Add</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:28px">#</th>
+            <th style="width:58px">Pallet No.</th>
+            <th style="width:90px">Pallet Split</th>
+            <th style="width:65px">Item Code</th>
+            <th class="left" style="min-width:160px">Description</th>
+            <th style="width:45px">CTN</th>
+            <th style="width:50px">Qty</th>
+            <th style="width:72px">Net Wt</th>
+            <th style="width:78px">Gross Wt</th>
+            <th style="width:78px">Total Net</th>
+            <th style="width:82px">Total Gross</th>
+            <th style="width:28px"></th>
+          </tr></thead>
+          <tbody id="pl-body"></tbody>
+        </table>
+      </div>
+      <div class="totals-bar">
+        <span>Items: <strong id="pl-ti">0</strong></span>
+        <span>CTN: <strong id="pl-tc">0</strong></span>
+        <span>Qty: <strong id="pl-tq">0</strong></span>
+        <span>Net Wt: <strong id="pl-tn">0</strong> KGM</span>
+        <span>Gross Wt: <strong id="pl-tg">0</strong> KGM</span>
+      </div>
+      <button class="btn-add" onclick="addPL()">+ Add Row</button>
+      <button class="btn-clear" onclick="clearTbl('pl')">✕ Clear All</button>
+    </div>
+    <div class="section">
+      <h2>Pallet Dimensions</h2>
+      <div class="paste-hint" style="margin-bottom:10px;">💡 Enter dimensions as <strong>L*W*H</strong> in cm (e.g. 113*113*145). CBM is calculated automatically.</div>
+      <div id="pallets"></div>
+      <button class="btn-add" onclick="addPallet()">+ Add Pallet</button>
+      <div id="cbm-bar" style="display:none; margin-top:14px; background:#EDF4F3; border:1.5px solid #CBDAD9; border-radius:8px; padding:10px 16px; font-size:13px; color:#004C4F;">
+        Total CBM: <strong id="cbm-total">0.000</strong> m³
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <span id="cbm-breakdown" style="font-size:12px; color:#4A4A42;"></span>
+      </div>
+    </div>
+    <div class="gen-section">
+      <button class="btn-gen btn-pl-gen" onclick="genPL()">⬇ Download Packing List (PDF)</button>
+      <button class="btn-gen" style="background:linear-gradient(135deg,#004C4F,#375428);color:white;margin-left:12px;" onclick="genPalletLabels()">⬇ Download Pallet Labels (PDF)</button>
+      <p class="notice">Pallet Labels: one A4 label per pallet, auto-filled from shipment details above.</p>
+    </div>
+  </div>
+
+  <!-- ═══ CARTON LABEL PANEL ═══ -->
+  <div class="panel panel-cl" id="panel-cl">
+    <div class="section">
+      <h2>Label Items <span>Paste from Excel or add manually</span></h2>
+      <div class="col-map">
+        <div class="col-map-item"><span>Col A</span>SKU Code</div>
+        <div class="col-map-item"><span>Col B</span>Product Code (skipped)</div>
+        <div class="col-map-item"><span>Col C</span>Product Name</div>
+        <div class="col-map-item"><span>Col D</span>Qty</div>
+      </div>
+      <textarea class="paste-area" id="cl-paste" rows="2" placeholder="Copy from Excel (incl. header) → click here → Ctrl+V — SKU auto-detects Category"></textarea>
+      <div class="paste-hint">💡 SKU Code is looked up in your SKU Manager to auto-fill Category and Qty/Ctn.</div>
+      <div class="qa-divider">or add one manually</div>
+      <div class="quick-add">
+        <div class="field" style="max-width:120px"><label>SKU Code</label><input type="text" id="cl-qa-sku" placeholder="SKU"></div>
+        <div class="field grow"><label>Item Name</label><input type="text" id="cl-qa-name"></div>
+        <div class="field" style="max-width:160px"><label>Category</label><select id="cl-qa-cat"><option value="">— Select —</option></select></div>
+        <div class="field" style="max-width:95px"><label>Qty / Ctn</label><input type="number" id="cl-qa-qty" min="1"></div>
+        <div class="field" style="max-width:95px"><label>Total Qty</label><input type="number" id="cl-qa-total" min="1"></div>
+        <button class="btn-save" onclick="quickAddCL()">+ Add</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:28px">#</th>
+            <th style="width:90px">SKU Code</th>
+            <th class="left" style="min-width:180px">Item Name</th>
+            <th style="width:130px">Category</th>
+            <th style="width:80px">Qty / Ctn</th>
+            <th style="width:80px">Total Qty</th>
+            <th style="width:28px"></th>
+          </tr></thead>
+          <tbody id="cl-body"></tbody>
+        </table>
+      </div>
+      <button class="btn-add" onclick="addCL()">+ Add Item</button>
+      <button class="btn-clear" onclick="clearTbl('cl')">✕ Clear All</button>
+    </div>
+    <div class="gen-section">
+      <button class="btn-gen btn-cl-gen" onclick="genLabels()">⬇ Download Carton Labels (PDF)</button>
+      <p class="notice">Generates one 100×150mm label per carton for all items. PDF downloads directly.</p>
+    </div>
+  </div>
+
+  <!-- ═══ SKU MANAGER PANEL ═══ -->
+  <div class="panel panel-skm" id="panel-skm">
+    <div class="settings-layout">
+
+      <!-- ── Sidebar ── -->
+      <div class="settings-sidebar">
+        <div class="settings-nav-item" id="snav-sku" onclick="switchSettings('sku')">
+          <span class="settings-nav-icon">🗂️</span> SKU Manager
+        </div>
+        <div class="settings-nav-item" id="snav-addr" onclick="switchSettings('addr')">
+          <span class="settings-nav-icon">📍</span> Address Manager
+        </div>
+      </div>
+
+      <!-- ── Content area ── -->
+      <div class="settings-content">
+
+        <!-- Placeholder -->
+        <div id="settings-placeholder" class="settings-placeholder">
+          <span class="ph-icon">⚙️</span>
+          <span>Select a category on the left to get started</span>
+        </div>
+
+        <!-- SKU Manager content -->
+        <div id="settings-sku" style="display:none">
+          <!-- Export / Import bar -->
+          <div class="section" style="padding:14px 24px;">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <span style="font-size:12px;font-weight:600;color:#6B6456;margin-right:4px;">SKU Database:</span>
+              <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+              <label class="btn-import-label">
+                ⬆ Import CSV
+                <input type="file" id="import-file" accept=".csv" onchange="importCSV(this)" style="display:none">
+              </label>
+              <span style="font-size:11px;color:#9A9384;">CSV format: SKU Code · Product Name · Category Name. Duplicate codes are skipped.</span>
+            </div>
+          </div>
+          <!-- Categories -->
+          <div class="section">
+            <h2>Categories <span>Each category has a default Qty / Ctn that auto-fills on the label</span></h2>
+            <div class="skm-add-row">
+              <div class="field"><label>Category Name</label><input type="text" id="cat-name" placeholder="e.g. Melts"></div>
+              <div class="field" style="max-width:160px"><label>Default Qty / Ctn</label><input type="number" id="cat-qty" placeholder="e.g. 40" min="1"></div>
+              <button class="btn-save" onclick="saveCategory()">+ Add Category</button>
+            </div>
+            <table class="tbl" id="cat-tbl">
+              <thead><tr>
+                <th style="width:28px">#</th>
+                <th class="left">Category Name</th>
+                <th style="width:140px">Default Qty / Ctn</th>
+                <th style="width:60px"></th>
+              </tr></thead>
+              <tbody id="cat-body"></tbody>
+            </table>
+            <p class="skm-empty" id="cat-empty" style="display:none">No categories yet. Add one above.</p>
+          </div>
+          <!-- SKUs -->
+          <div class="section">
+            <h2>SKU Database <span>Maps SKU Code → Product Name + Category</span></h2>
+            <div class="skm-add-row">
+              <div class="field"><label>SKU Code</label><input type="text" id="sku-code" placeholder="e.g. PN-SG-001"></div>
+              <div class="field"><label>Product Name</label><input type="text" id="sku-name" placeholder="e.g. Skin Glow Melts 30s"></div>
+              <div class="field" style="max-width:200px"><label>Category</label><select id="sku-cat"><option value="">— Select —</option></select></div>
+              <button class="btn-save" onclick="saveSKU()">+ Add SKU</button>
+            </div>
+            <div style="margin-bottom:18px">
+              <div class="col-map" style="margin-bottom:6px">
+                <div class="col-map-item"><span>Col A</span>SKU Code</div>
+                <div class="col-map-item"><span>Col B</span>Product Name</div>
+                <div class="col-map-item"><span>Col C</span>Category Name</div>
+              </div>
+              <textarea class="paste-area" id="sku-bulk-paste" rows="2" placeholder="Copy SKU rows from Excel (incl. header) → click here → Ctrl+V  — Category must match an existing category name exactly"></textarea>
+              <div class="paste-hint">💡 Category name must match exactly (e.g. "Melts"). Unmatched categories are left blank for manual selection.</div>
+            </div>
+            <table class="tbl">
+              <thead><tr>
+                <th style="width:28px">#</th>
+                <th style="width:130px">SKU Code</th>
+                <th class="left">Product Name</th>
+                <th style="width:160px">Category</th>
+                <th style="width:60px"></th>
+              </tr></thead>
+              <tbody id="sku-body"></tbody>
+            </table>
+            <p class="skm-empty" id="sku-empty" style="display:none">No SKUs yet. Add one above.</p>
+          </div>
+        </div><!-- /settings-sku -->
+
+        <!-- Address Manager content -->
+        <div id="settings-addr" style="display:none">
+          <div class="section">
+            <h2>Address Manager <span>Destination addresses for CI &amp; PL documents</span></h2>
+
+            <!-- Add / Edit form -->
+            <div class="addr-form" id="addr-form">
+              <div style="font-size:13px;font-weight:700;color:#004C4F;margin-bottom:14px;" id="addr-form-title">➕ Add New Address</div>
+              <div class="addr-form-grid">
+                <div class="field">
+                  <label>Destination Label <span style="color:#8B1E1E">*</span></label>
+                  <input type="text" id="addr-label" placeholder="e.g. Philippines">
+                </div>
+                <div class="field">
+                  <label>Invoice Code <span style="font-size:11px;color:#9A9384">(for auto-detect)</span></label>
+                  <input type="text" id="addr-invcode" placeholder="e.g. PNSGPH">
+                </div>
+                <div class="field">
+                  <label>Buyer / Bill To</label>
+                  <input type="text" id="addr-buyer" placeholder="e.g. The Purest Group Sdn Bhd">
+                </div>
+                <div class="field">
+                  <label>Consignee Name</label>
+                  <input type="text" id="addr-consname" placeholder="e.g. Main Distribution Warehouse">
+                </div>
+                <div class="field full">
+                  <label>Full Address</label>
+                  <input type="text" id="addr-address" placeholder="e.g. 123 Example Street, City, Region">
+                </div>
+                <div class="field">
+                  <label>Attention / Contact Name</label>
+                  <input type="text" id="addr-attention" placeholder="e.g. Contact Name">
+                </div>
+                <div class="field">
+                  <label>Phone</label>
+                  <input type="text" id="addr-phone" placeholder="e.g. 0900 000 0000">
+                </div>
+                <div class="field full">
+                  <label>Receiving Hours</label>
+                  <input type="text" id="addr-recv" placeholder="e.g. Mon-Sat, 9AM-6PM">
+                </div>
+              </div>
+              <input type="hidden" id="addr-edit-id">
+              <div class="addr-form-actions">
+                <button class="btn-cancel" onclick="resetAddrForm()">Cancel</button>
+                <button class="btn-save" onclick="saveAddr()">Save Address</button>
+              </div>
+            </div>
+
+            <!-- Address list -->
+            <div id="addr-list"></div>
+            <p class="skm-empty" id="addr-empty" style="display:none">No addresses yet. Add one above.</p>
+          </div>
+        </div><!-- /settings-addr -->
+
+      </div><!-- /settings-content -->
+    </div><!-- /settings-layout -->
+  </div>
+
+</div><!-- /container -->
+</div><!-- /#app -->
+<div id="toast"></div>
+<div id="cfm-overlay"><div class="cfm-card"><div class="cfm-msg" id="cfm-msg"></div><div class="cfm-actions"><button class="btn-cancel" id="cfm-no">Cancel</button><button class="btn-save" id="cfm-yes">Confirm</button></div></div></div>
+
+<script>
+const { jsPDF } = window.jspdf;
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// FIREBASE + AUTH
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+const firebaseConfig = {
+  apiKey: "AIzaSyDM3-Ob02qPFG0Wp67o9iWsohuw6hj3VhE",
+  authDomain: "purest-logx-tools.firebaseapp.com",
+  projectId: "purest-logx-tools",
+  storageBucket: "purest-logx-tools.firebasestorage.app",
+  messagingSenderId: "684066133614",
+  appId: "1:684066133614:web:26c955f62ec49bb88fb87f"
+};
+let fbdb = null, fbauth = null;
+try { firebase.initializeApp(firebaseConfig); fbauth = firebase.auth(); fbdb = firebase.firestore(); } catch(e){ console.error('Firebase init failed', e); }
+
+let EXPORTER = { name:'', uen:'', officeAddr:'', warehouseAddr:'' };
+
+function toast(msg, isErr){
+  const el = document.getElementById('toast');
+  if (!el) { return; }
+  el.textContent = msg; el.className = 'show' + (isErr ? ' err' : '');
+  clearTimeout(toast._t); toast._t = setTimeout(function(){ el.className = ''; }, 3200);
+}
+
+const INACTIVITY_MS = 2*60*60*1000;
+let _idleT = null;
+function resetIdle(){ clearTimeout(_idleT); if (fbauth && fbauth.currentUser) _idleT = setTimeout(function(){ doLogout(true); }, INACTIVITY_MS); }
+['click','keydown','mousemove','touchstart'].forEach(function(ev){ document.addEventListener(ev, resetIdle, {passive:true}); });
+
+function doLogin(){
+  const msg = document.getElementById('lg-msg');
+  if (!fbauth) { msg.className='login-msg err'; msg.textContent='Firebase not available. Check your connection.'; return; }
+  const email = document.getElementById('lg-email').value.trim();
+  const pass  = document.getElementById('lg-pass').value;
+  if (!email || !pass) { msg.className='login-msg err'; msg.textContent='Enter email and password.'; return; }
+  msg.className='login-msg'; msg.textContent='Signing in...';
+  document.getElementById('lg-btn').disabled = true;
+  fbauth.setPersistence(firebase.auth.Auth.Persistence.SESSION)
+    .then(function(){ return fbauth.signInWithEmailAndPassword(email, pass); })
+    .catch(function(err){
+      document.getElementById('lg-btn').disabled = false;
+      msg.className = 'login-msg err';
+      const bad = err.code && /credential|password|user-not-found/.test(err.code);
+      msg.textContent = bad ? 'Incorrect email or password.' : (err.message || 'Sign-in failed.');
+    });
+}
+function doLogout(idle){ if (fbauth) fbauth.signOut(); if (idle) toast('Signed out after inactivity.'); }
+
+if (fbauth) {
+  fbauth.onAuthStateChanged(async function(user){
+    if (user) {
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('who').textContent = user.email || '';
+      resetIdle();
+      await loadCloudData();
+      initUI();
+    } else {
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('login').style.display = 'flex';
+      document.getElementById('lg-btn').disabled = false;
+      document.getElementById('lg-pass').value = '';
+      clearTimeout(_idleT);
+    }
+  });
+} else {
+  window.addEventListener('DOMContentLoaded', function(){
+    const m = document.getElementById('lg-msg');
+    if (m) { m.className='login-msg err'; m.textContent='Firebase failed to load. Check your connection.'; }
+  });
+}
+
+function mirrorLocal(){
+  try {
+    localStorage.setItem('pn_cats',  JSON.stringify(CATS));
+    localStorage.setItem('pn_skus',  JSON.stringify(SKUS));
+    localStorage.setItem('pn_locs',  JSON.stringify(LOCS));
+    localStorage.setItem('pn_addrs', JSON.stringify(ADDRS));
+    localStorage.setItem('pn_exporter', JSON.stringify(EXPORTER));
+  } catch(e){}
+}
+
+async function loadCloudData(){
+  try {
+    const snaps = await Promise.all([
+      fbdb.collection('shipping_generator').doc('parties').get(),
+      fbdb.collection('shipping_generator').doc('catalog').get()
+    ]);
+    const p = snaps[0], c = snaps[1];
+    if (p.exists) { const d = p.data(); ADDRS = d.addresses || []; if (d.exporter) EXPORTER = d.exporter; }
+    if (c.exists) { const d = c.data(); CATS = d.categories || []; SKUS = d.skus || []; LOCS = d.locations || []; }
+    mirrorLocal();
+  } catch(e){
+    console.error(e);
+    loadDB();
+    toast('Could not reach cloud - using local copy.', true);
+  }
+  buildAddrMap();
+  populateDropdowns();
+  refreshLocDropdown();
+}
+
+let _initDone = false;
+function initUI(){
+  if (_initDone) return; _initDone = true;
+  setupSKUBulkPaste();
+  var _d = document.getElementById('sh-date'); if (_d) _d.valueAsDate = new Date();
+  addPallet();
+  addCL();
+  refreshCatDropdown('cl-qa-cat');
+}
+
+// ══════════════════════════════════════════
+// DATA — loaded from localStorage
+// ══════════════════════════════════════════
+// Addresses — loaded from localStorage, keyed by id
+let ADDRS = [];
+let ADDR_MAP = {}; // id → address object
+
+function buildAddrMap() {
+  ADDR_MAP = {};
+  ADDRS.forEach(a => { ADDR_MAP[a.id] = a; });
+}
+
+// In-memory DB — persisted to localStorage
+let CATS = []; // { id, name, qty }
+let SKUS = []; // { id, code, name, catId }
+let LOCS = []; // { id, name }
+
+function loadDB() {
+  try { CATS  = JSON.parse(localStorage.getItem('pn_cats')  || '[]'); } catch(e){ CATS=[]; }
+  try { SKUS  = JSON.parse(localStorage.getItem('pn_skus')  || '[]'); } catch(e){ SKUS=[]; }
+  try { LOCS  = JSON.parse(localStorage.getItem('pn_locs')  || '[]'); } catch(e){ LOCS=[]; }
+  try { ADDRS = JSON.parse(localStorage.getItem('pn_addrs') || '[]'); } catch(e){ ADDRS=[]; }
+  try { EXPORTER = JSON.parse(localStorage.getItem('pn_exporter') || 'null') || EXPORTER; } catch(e){}
+}
+
+// ── EXPORT CSV ───────────────────────────────────────────────────────────────
+function exportCSV() {
+  const rows = [['SKU Code','Product Name','Category','Qty/Ctn']];
+  SKUS.forEach(s => {
+    const cat = catById(s.catId);
+    rows.push([s.code, s.name, cat ? cat.name : '', cat ? cat.qty : '']);
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'PurestNest_SKU_Database.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── IMPORT CSV ───────────────────────────────────────────────────────────────
+// Expected columns: SKU Code | Product Name | Category Name
+// (Qty/Ctn column is optional and ignored — it is read from the Category definition)
+function parseCSVLine(line){
+  const out=[]; let cur='', q=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(q){ if(ch==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; }
+    else { if(ch==='"') q=true; else if(ch===',') { out.push(cur); cur=''; } else cur+=ch; }
+  }
+  out.push(cur);
+  return out.map(function(c){ return c.trim(); });
+}
+function importCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const text = e.target.result.replace(/^\uFEFF/, ''); // strip BOM
+      const lines = text.trim().split('\n').filter(l => l.trim());
+      let added = 0, dupes = 0, skipped = 0;
+
+      lines.forEach(line => {
+        // Parse CSV columns (handles quoted values)
+        const cols = parseCSVLine(line);
+        if (!cols[0]) return;
+        if (isHeader(cols)) return; // skip header row
+
+        const code    = cols[0].trim();
+        const name    = cols[1] ? cols[1].trim() : '';
+        const catName = cols[2] ? cols[2].trim() : '';
+
+        if (!code || !name) { skipped++; return; }
+
+        // Skip duplicate SKU codes
+        if (SKUS.find(s => s.code.toUpperCase() === code.toUpperCase())) { dupes++; return; }
+
+        // Match category by name (case-insensitive)
+        const matchedCat = CATS.find(c => c.name.trim().toLowerCase() === catName.toLowerCase());
+
+        SKUS.push({ id: uid(), code, name, catId: matchedCat ? matchedCat.id : '' });
+        added++;
+      });
+
+      saveDB();
+      renderSKMTables();
+      let msg = `Import complete!\n✅ ${added} SKU${added !== 1 ? 's' : ''} added.`;
+      if (dupes)   msg += `\n⚠ ${dupes} skipped (duplicate code).`;
+      if (skipped) msg += `\n⚠ ${skipped} skipped (missing code or name).`;
+      toast(msg.replace(/\n/g, '  '));
+    } catch(err) {
+      toast('Could not read file. Use a valid CSV: SKU Code, Product Name, Category.', true);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+function saveDB() {
+  mirrorLocal();
+  if (fbdb && fbauth && fbauth.currentUser) {
+    fbdb.collection('shipping_generator').doc('parties').set({ exporter: EXPORTER, addresses: ADDRS }).catch(function(){ toast('Cloud sync failed - saved locally.', true); });
+    fbdb.collection('shipping_generator').doc('catalog').set({ categories: CATS, skus: SKUS, locations: LOCS }).catch(function(){});
+  }
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// Lookups
+function catById(id)   { return CATS.find(c=>c.id===id); }
+function skuByCode(code){ return SKUS.find(s=>s.code.trim().toUpperCase()===code.trim().toUpperCase()); }
+function catName(id)   { const c=catById(id); return c?c.name:''; }
+function catQty(id)    { const c=catById(id); return c?c.qty:0; }
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function switchTab(t) {
+  ['ci','pl','cl','skm'].forEach(x => {
+    document.getElementById('panel-'+x).classList.remove('show');
+    document.getElementById('tab-'+x).className = 'tab';
+  });
+  document.getElementById('panel-'+t).classList.add('show');
+  document.getElementById('tab-'+t).className = 'tab active-'+t;
+}
+
+function switchSettings(cat) {
+  ['sku','addr'].forEach(c => {
+    document.getElementById('settings-'+c).style.display = 'none';
+    document.getElementById('snav-'+c).classList.remove('active');
+  });
+  document.getElementById('settings-placeholder').style.display = 'none';
+  document.getElementById('settings-'+cat).style.display = 'block';
+  document.getElementById('snav-'+cat).classList.add('active');
+  if (cat === 'sku') renderSKMTables();
+  if (cat === 'addr') renderAddrList();
+}
+
+// ══════════════════════════════════════════
+// POPULATE DESTINATION DROPDOWNS FROM ADDRS
+// ══════════════════════════════════════════
+function populateDropdowns(){
+  const sel=document.getElementById('sh-dest');
+  if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Select —</option>';
+  ADDRS.forEach(function(a){ const opt=document.createElement('option'); opt.value=a.id; opt.textContent=a.label; sel.appendChild(opt); });
+  if(cur && ADDR_MAP[cur]) sel.value=cur;
+}
+
+// ══════════════════════════════════════════
+// ADDRESS MANAGER
+// ══════════════════════════════════════════
+function renderAddrList() {
+  const list = document.getElementById('addr-list');
+  const empty = document.getElementById('addr-empty');
+  if (!ADDRS.length) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = ADDRS.map((a,i) => {
+    const shipTo = xe([a.consigneeName, a.address].filter(Boolean).join(', '));
+    const contact = xe([a.attention?'Attn: '+a.attention:'', a.phone?'Phone: '+a.phone:''].filter(Boolean).join(' | '));
+    return `<div class="addr-card">
+      <div class="addr-card-actions">
+        <button class="btn-export" style="padding:4px 10px;font-size:11px" onclick="editAddr('${xe(a.id)}')">✏️ Edit</button>
+        <button class="btn-del" onclick="deleteAddr('${xe(a.id)}')">×</button>
+      </div>
+      <div class="addr-card-label">${xe(a.label)}${a.invoiceCode?' <span style=\"font-size:11px;font-weight:400;color:#9A9384\">('+xe(a.invoiceCode)+')</span>':''}</div>
+      <div class="addr-card-detail">
+        ${a.buyer?'<strong>Buyer:</strong> '+xe(a.buyer)+'<br>':''}
+        <strong>Ship To:</strong> ${shipTo}<br>
+        ${contact?'<strong>Contact:</strong> '+contact:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function saveAddr() {
+  const label = document.getElementById('addr-label').value.trim();
+  if (!label) { toast('Destination label is required.', true); return; }
+  const editId = document.getElementById('addr-edit-id').value;
+  const obj = {
+    id:           editId || ('addr_'+uid()),
+    label:        label,
+    invoiceCode:  document.getElementById('addr-invcode').value.trim(),
+    buyer:        document.getElementById('addr-buyer').value.trim(),
+    consigneeName:document.getElementById('addr-consname').value.trim(),
+    address:      document.getElementById('addr-address').value.trim(),
+    attention:    document.getElementById('addr-attention').value.trim(),
+    phone:        document.getElementById('addr-phone').value.trim(),
+    recv:         document.getElementById('addr-recv').value.trim()
+  };
+  if (editId) {
+    const idx = ADDRS.findIndex(a => a.id === editId);
+    if (idx !== -1) ADDRS[idx] = obj;
+  } else {
+    ADDRS.push(obj);
+  }
+  saveDB(); buildAddrMap(); populateDropdowns();
+  resetAddrForm(); renderAddrList();
+}
+
+function editAddr(id) {
+  const a = ADDR_MAP[id]; if (!a) return;
+  document.getElementById('addr-label').value     = a.label || '';
+  document.getElementById('addr-invcode').value   = a.invoiceCode || '';
+  document.getElementById('addr-buyer').value     = a.buyer || '';
+  document.getElementById('addr-consname').value  = a.consigneeName || '';
+  document.getElementById('addr-address').value   = a.address || '';
+  document.getElementById('addr-attention').value = a.attention || '';
+  document.getElementById('addr-phone').value     = a.phone || '';
+  document.getElementById('addr-recv').value      = a.recv  || '';
+  document.getElementById('addr-edit-id').value   = id;
+  document.getElementById('addr-form-title').textContent = '✏️ Edit Address';
+  document.getElementById('addr-form').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+async function deleteAddr(id) {
+  const a = ADDR_MAP[id];
+  if (!a) return;
+  if (!(await askConfirm('Delete "' + a.label + '"?', 'Delete'))) return;
+  ADDRS = ADDRS.filter(x => x.id !== id);
+  saveDB(); buildAddrMap(); populateDropdowns(); renderAddrList();
+}
+
+function resetAddrForm() {
+  ['addr-label','addr-invcode','addr-buyer','addr-consname','addr-address','addr-attention','addr-phone','addr-recv'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('addr-edit-id').value = '';
+  document.getElementById('addr-form-title').textContent = '➕ Add New Address';
+}
+
+// ══════════════════════════════════════════
+// SKU MANAGER
+// ══════════════════════════════════════════
+function renderSKMTables() {
+  renderCatTable();
+  renderSKUTable();
+  refreshCatDropdown('sku-cat'); refreshCatDropdown('cl-qa-cat');
+}
+
+function renderCatTable() {
+  const tbody = document.getElementById('cat-body');
+  tbody.innerHTML = '';
+  document.getElementById('cat-empty').style.display = CATS.length ? 'none' : 'block';
+  CATS.forEach((c,i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align:center;color:#9A9384;font-size:11px">${i+1}</td>
+      <td><input type="text" value="${xe(c.name)}" onchange="updateCat('${c.id}','name',this.value)"></td>
+      <td><input type="number" value="${c.qty}" min="1" style="width:80px" onchange="updateCat('${c.id}','qty',this.value)"></td>
+      <td><button class="btn-del" onclick="deleteCat('${c.id}')">×</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderSKUTable() {
+  const tbody = document.getElementById('sku-body');
+  tbody.innerHTML = '';
+  document.getElementById('sku-empty').style.display = SKUS.length ? 'none' : 'block';
+  SKUS.forEach((s,i) => {
+    const tr = document.createElement('tr');
+    const catOpts = CATS.map(c=>`<option value="${c.id}"${c.id===s.catId?' selected':''}>${xe(c.name)}</option>`).join('');
+    tr.innerHTML = `
+      <td style="text-align:center;color:#9A9384;font-size:11px">${i+1}</td>
+      <td><input type="text" value="${xe(s.code)}" onchange="updateSKU('${s.id}','code',this.value)"></td>
+      <td><input type="text" value="${xe(s.name)}" onchange="updateSKU('${s.id}','name',this.value)"></td>
+      <td><select onchange="updateSKU('${s.id}','catId',this.value)"><option value="">— Select —</option>${catOpts}</select></td>
+      <td><button class="btn-del" onclick="deleteSKU('${s.id}')">×</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function refreshCatDropdown(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    CATS.map(c=>`<option value="${c.id}">${xe(c.name)}</option>`).join('');
+  sel.value = cur;
+}
+
+function saveCategory() {
+  const name = document.getElementById('cat-name').value.trim();
+  const qty  = parseInt(document.getElementById('cat-qty').value) || 0;
+  if (!name) { toast('Please enter a category name.', true); return; }
+  if (!qty)  { toast('Please enter a default Qty/Ctn.', true); return; }
+  CATS.push({ id: uid(), name, qty });
+  saveDB();
+  document.getElementById('cat-name').value = '';
+  document.getElementById('cat-qty').value  = '';
+  renderSKMTables();
+}
+
+function updateCat(id, field, val) {
+  const c = catById(id);
+  if (!c) return;
+  c[field] = field==='qty' ? (parseInt(val)||0) : val;
+  saveDB();
+  refreshCatDropdown('sku-cat'); refreshCatDropdown('cl-qa-cat');
+  refreshCatDropdown('cl-cat-inline'); // update label tab if visible
+}
+
+async function deleteCat(id) {
+  if (!(await askConfirm('Delete this category? SKUs using it will lose their category.', 'Delete'))) return;
+  CATS = CATS.filter(c=>c.id!==id);
+  SKUS.forEach(s=>{ if(s.catId===id) s.catId=''; });
+  saveDB();
+  renderSKMTables();
+}
+
+function saveSKU() {
+  const code  = document.getElementById('sku-code').value.trim();
+  const name  = document.getElementById('sku-name').value.trim();
+  const catId = document.getElementById('sku-cat').value;
+  if (!code) { toast('Please enter a SKU code.', true); return; }
+  if (!name) { toast('Please enter a product name.', true); return; }
+  if (SKUS.find(s=>s.code.toUpperCase()===code.toUpperCase())) {
+    toast('A SKU with this code already exists.', true); return;
+  }
+  SKUS.push({ id: uid(), code, name, catId });
+  saveDB();
+  document.getElementById('sku-code').value = '';
+  document.getElementById('sku-name').value = '';
+  document.getElementById('sku-cat').value  = '';
+  renderSKMTables();
+}
+
+// Bulk paste handler for SKUs
+function setupSKUBulkPaste() {
+  document.getElementById('sku-bulk-paste').addEventListener('paste', e => {
+    e.preventDefault();
+    const txt = (e.clipboardData||window.clipboardData).getData('text');
+    const lines = txt.trim().split('\n').filter(l=>l.trim());
+    let added = 0, skipped = 0, dupes = 0;
+
+    lines.forEach(line => {
+      const cols = line.split('\t').map(c=>c.trim());
+      if (!cols[0]) return;
+      // Skip header rows
+      if (isHeader(cols)) return;
+
+      const code    = cols[0] || '';
+      const name    = cols[1] || '';
+      const catName = cols[2] || '';
+
+      if (!code || !name) { skipped++; return; }
+
+      // Check for duplicates
+      if (SKUS.find(s=>s.code.toUpperCase()===code.toUpperCase())) { dupes++; return; }
+
+      // Match category by name (case-insensitive)
+      const matchedCat = CATS.find(c=>c.name.trim().toLowerCase()===catName.trim().toLowerCase());
+      const catId = matchedCat ? matchedCat.id : '';
+
+      SKUS.push({ id: uid(), code, name, catId });
+      added++;
+    });
+
+    saveDB();
+    renderSKMTables();
+    e.target.value = '';
+
+    // Summary feedback
+    let msg = `✅ ${added} SKU${added!==1?'s':''} added!`;
+    if (dupes)   msg += `  ${dupes} skipped (duplicate code).`;
+    if (skipped) msg += `  ${skipped} skipped (missing code or name).`;
+    e.target.placeholder = msg;
+  });
+}
+
+function updateSKU(id, field, val) {
+  const s = SKUS.find(x=>x.id===id);
+  if (s) { s[field] = val; saveDB(); }
+}
+
+async function deleteSKU(id) {
+  if (!(await askConfirm('Delete this SKU?', 'Delete'))) return;
+  SKUS = SKUS.filter(s=>s.id!==id);
+  saveDB();
+  renderSKMTables();
+}
+
+// ── DELIVERY LOCATIONS (inline editor in Carton Labels tab) ──────────────────
+function refreshLocDropdown() {
+  const sel = document.getElementById('sh-loc');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    LOCS.map(l => `<option value="${xe(l.name)}">${xe(l.name)}</option>`).join('');
+  if (cur) sel.value = cur;
+  renderLocTags();
+}
+
+function renderLocTags() {
+  const container = document.getElementById('loc-tags');
+  if (!container) return;
+  container.innerHTML = LOCS.map(l => `
+    <span style="display:inline-flex;align-items:center;gap:4px;background:#F2ECE1;border:1px solid #E7E0D4;border-radius:20px;padding:3px 10px;font-size:12px;color:#4A4A42;">
+      ${xe(l.name)}
+      <button onclick="deleteLoc('${l.id}')" style="background:none;border:none;cursor:pointer;color:#A94442;font-size:14px;line-height:1;padding:0 2px;">×</button>
+    </span>`).join('');
+}
+
+function toggleLocEditor() {
+  const ed = document.getElementById('loc-editor');
+  ed.style.display = ed.style.display === 'none' ? 'block' : 'none';
+  renderLocTags();
+}
+
+function addLocInline() {
+  const input = document.getElementById('loc-new-input');
+  const name = input.value.trim();
+  if (!name) return;
+  if (LOCS.find(l => l.name.toUpperCase() === name.toUpperCase())) {
+    toast('This location already exists.', true); return;
+  }
+  LOCS.push({ id: uid(), name });
+  saveDB();
+  input.value = '';
+  refreshLocDropdown();
+}
+
+function deleteLoc(id) {
+  LOCS = LOCS.filter(l => l.id !== id);
+  saveDB();
+  refreshLocDropdown();
+}
+
+// ══════════════════════════════════════════
+// AUTO-DETECT (CI / PL)
+// ══════════════════════════════════════════
+function autoDetect(){
+  const v=(document.getElementById('sh-ref').value||'').toUpperCase();
+  let matchId='';
+  ADDRS.forEach(function(a){ if(a.invoiceCode && v.includes(a.invoiceCode.toUpperCase())) matchId=a.id; });
+  if(matchId){ document.getElementById('sh-dest').value=matchId; fillConsignee(); document.getElementById('sh-dest-badge').innerHTML='<span class="badge">✓ auto</span>'; }
+  const m=v.match(/-(\d{8})/);
+  if(m){ const r=m[1], ds=r.slice(0,4)+'-'+r.slice(4,6)+'-'+r.slice(6,8); if(!isNaN(new Date(ds).getTime())){ document.getElementById('sh-date').value=ds; document.getElementById('sh-date-badge').innerHTML='<span class="badge">✓ auto</span>'; } }
+}
+
+function fillConsignee(){
+  const c=document.getElementById('sh-dest').value, box=document.getElementById('sh-consignee');
+  if(!c){ box.innerHTML='Select a destination or type a ref number to auto-fill.'; return; }
+  const d=ADDR_MAP[c]; if(!d){ box.innerHTML='Address not found.'; return; }
+  let h='';
+  if(d.buyer) h+='<strong>Buyer:</strong> '+xe(d.buyer)+'<br>';
+  const shipTo=xe([d.consigneeName,d.address].filter(Boolean).join(', '));
+  h+='<strong>Ship To:</strong> '+shipTo;
+  const cp=[];
+  if(d.attention) cp.push('Attn: '+d.attention);
+  if(d.phone) cp.push('Phone: '+d.phone);
+  if(cp.length) h+='<br><strong>Contact:</strong> '+xe(cp.join(' | '));
+  box.innerHTML=h;
+}
+
+// ══════════════════════════════════════════
+// PASTE HELPERS
+// ══════════════════════════════════════════
+function isHeader(cols) {
+  const joined = cols.slice(0,6).join(' ');
+  const hasHeaderWords = /^(pallet|item|sku|desc|qty|quantity|price|ctn|carton|net|gross|ref|no\.?|weight|code|product)/i.test(joined);
+  const hasAnyNumber = cols.some(c => !isNaN(parseFloat(c)) && c.trim() !== '');
+  return hasHeaderWords && !hasAnyNumber;
+}
+
+function setupPaste(id, fn) {
+  document.getElementById(id).addEventListener('paste', e => {
+    e.preventDefault();
+    const txt=(e.clipboardData||window.clipboardData).getData('text');
+    const lines=txt.trim().split('\n').filter(l=>l.trim());
+    let n=0;
+    lines.forEach(line => {
+      // Strip thousand-separator commas from numbers (e.g. 3,000 → 3000)
+      const cleaned = line.replace(/(\d),(\d)/g, '$1$2');
+      const cols=cleaned.split('\t').map(c=>c.trim());
+      if(isHeader(cols)||cols.every(c=>!c)) return;
+      fn(cols); n++;
+    });
+    e.target.value='';
+    if(n) e.target.placeholder=`✅ ${n} row${n>1?'s':''} added! Paste again to append.`;
+  });
+}
+
+// ══════════════════════════════════════════
+// CI
+// ══════════════════════════════════════════
+function addCI(d={}, flash=false) {
+  const tb=document.getElementById('ci-body'), i=tb.rows.length+1, tr=document.createElement('tr');
+  const q=parseFloat(d.qty)||0, p=parseFloat(d.price)||0;
+  tr.innerHTML=`<td style="text-align:center;color:#9A9384;font-size:11px">${i}</td>
+    <td><input type="text" value="${xe(d.desc||'')}" oninput="calcCI()"></td>
+    <td><input type="number" value="${d.qty||''}" min="0" oninput="calcCI();ciT(this)"></td>
+    <td><input type="number" value="${d.price||''}" step="0.01" oninput="calcCI();ciT(this)"></td>
+    <td class="rtotal">${q&&p?fm(q*p):'—'}</td>
+    <td><button class="btn-del" onclick="this.closest('tr').remove();rn('ci-body');calcCI()">×</button></td>`;
+  if(flash) tr.classList.add('flash');
+  tb.appendChild(tr); calcCI();
+}
+function ciT(el){ const ins=el.closest('tr').querySelectorAll('input'),v=(parseFloat(ins[1].value)||0)*(parseFloat(ins[2].value)||0); el.closest('tr').querySelector('.rtotal').textContent=v?fm(v):'—'; }
+function calcCI(){ const r=getCIR(); document.getElementById('ci-ti').textContent=r.length; document.getElementById('ci-tq').textContent=r.reduce((s,x)=>s+x.qty,0); document.getElementById('ci-tv').textContent='SGD '+fm(r.reduce((s,x)=>s+x.total,0)); }
+function getCIR(){ return[...document.querySelectorAll('#ci-body tr')].map(tr=>{ const i=tr.querySelectorAll('input'),q=parseFloat(i[1].value)||0,p=parseFloat(i[2].value)||0; return{desc:i[0].value.trim(),qty:q,price:p,total:q*p}; }); }
+
+// ══════════════════════════════════════════
+// PL
+// ══════════════════════════════════════════
+function addPL(d={}, flash=false) {
+  const tb=document.getElementById('pl-body'), i=tb.rows.length+1, tr=document.createElement('tr');
+  const c=parseFloat(d.ctn)||0,n=parseFloat(d.net)||0,g=parseFloat(d.gross)||0;
+  tr.innerHTML=`<td style="text-align:center;color:#9A9384;font-size:11px">${i}</td>
+    <td><input type="text" value="${xe(d.pallet||'')}" style="width:50px" oninput="calcPL()"></td>
+    <td><input type="text" value="${xe(d.split||'')}" placeholder="e.g. 20-1, 10-2" style="width:86px;font-size:11px" oninput="calcPL()"></td>
+    <td><input type="text" value="${xe(d.code||'')}"   style="width:60px" oninput="calcPL()"></td>
+    <td><input type="text" value="${xe(d.desc||'')}"   oninput="calcPL()"></td>
+    <td><input type="number" value="${d.ctn||''}"   min="0" style="width:40px" oninput="calcPL()"></td>
+    <td><input type="number" value="${d.qty||''}"   min="0" style="width:48px" oninput="calcPL()"></td>
+    <td><input type="number" value="${d.net||''}"   step="0.001" style="width:66px" oninput="calcPL()"></td>
+    <td><input type="number" value="${d.gross||''}" step="0.001" style="width:70px" oninput="calcPL()"></td>
+    <td class="rtotal">${c&&n?(c*n).toFixed(3):'—'}</td>
+    <td class="rtotal">${c&&g?(c*g).toFixed(3):'—'}</td>
+    <td><button class="btn-del" onclick="this.closest('tr').remove();rn('pl-body');calcPL()">×</button></td>`;
+  if(flash) tr.classList.add('flash');
+  tb.appendChild(tr); calcPL();
+}
+function calcPL(){ const r=getPLR(); document.getElementById('pl-ti').textContent=r.length; document.getElementById('pl-tc').textContent=r.reduce((s,x)=>s+x.ctn,0); document.getElementById('pl-tq').textContent=r.reduce((s,x)=>s+x.qty,0); document.getElementById('pl-tn').textContent=r.reduce((s,x)=>s+x.tN,0).toFixed(3); document.getElementById('pl-tg').textContent=r.reduce((s,x)=>s+x.tG,0).toFixed(3); }
+function getPLR(){ return[...document.querySelectorAll('#pl-body tr')].map(tr=>{ const i=tr.querySelectorAll('input'),c=parseFloat(i[4].value)||0,n=parseFloat(i[6].value)||0,g=parseFloat(i[7].value)||0; return{pallet:i[0].value.trim(),split:i[1].value.trim(),code:i[2].value.trim(),desc:i[3].value.trim(),qty:parseFloat(i[5].value)||0,ctn:c,net:n,gross:g,tN:c*n,tG:c*g}; }); }
+
+// ══════════════════════════════════════════
+// CARTON LABELS
+// ══════════════════════════════════════════
+function catDropdownHTML(selectedCatId) {
+  return '<option value="">— Select —</option>' +
+    CATS.map(c=>`<option value="${c.id}"${c.id===selectedCatId?' selected':''}>${xe(c.name)}</option>`).join('') +
+    `<option value="__custom__"${selectedCatId==='__custom__'?' selected':''}>Other (custom)</option>`;
+}
+
+function addCL(d={}, flash=false) {
+  const tb=document.getElementById('cl-body'), i=tb.rows.length+1, tr=document.createElement('tr');
+  // Look up SKU if code provided
+  let resolvedCatId = d.catId || '';
+  let resolvedQty   = d.qty   || '';
+  let matched       = false;
+  if (d.skuCode) {
+    const found = skuByCode(d.skuCode);
+    if (found) { resolvedCatId = found.catId; resolvedQty = catQty(found.catId) || resolvedQty; matched = true; }
+  }
+  if (!resolvedQty && resolvedCatId) resolvedQty = catQty(resolvedCatId);
+
+  const matchTag = d.skuCode
+    ? (matched
+        ? `<span class="tag-matched">✓ matched</span>`
+        : `<span class="tag-unmatched">! not found</span>`)
+    : '';
+
+  tr.innerHTML=`
+    <td style="text-align:center;color:#9A9384;font-size:11px">${i}</td>
+    <td><input type="text" value="${xe(d.skuCode||'')}" placeholder="SKU" style="width:80px" oninput="clSKUChange(this)">${matchTag}</td>
+    <td><input type="text" value="${xe(d.name||'')}" placeholder="Item name"></td>
+    <td><select onchange="clCatChange(this)">${catDropdownHTML(resolvedCatId)}</select></td>
+    <td><input type="number" class="cl-qty" value="${resolvedQty}" min="1" placeholder="e.g. 10"></td>
+    <td><input type="number" class="cl-ctns" value="${d.totalQty||''}" min="1" placeholder="e.g. 285"></td>
+    <td><button class="btn-del" onclick="this.closest('tr').remove();rn('cl-body')">×</button></td>`;
+  if(flash) tr.classList.add('flash');
+  tb.appendChild(tr);
+}
+
+// Live SKU lookup when user types into SKU field
+function clSKUChange(input) {
+  const tr    = input.closest('tr');
+  const code  = input.value.trim();
+  const found = skuByCode(code);
+  // Remove old tag
+  const oldTag = input.parentElement.querySelector('.tag-matched, .tag-unmatched');
+  if (oldTag) oldTag.remove();
+  if (!code) return;
+  // Add new tag
+  const tag = document.createElement('span');
+  if (found) {
+    tag.className = 'tag-matched'; tag.textContent = '✓ matched';
+    // Fill name if empty
+    const nameInput = tr.querySelectorAll('input')[1];
+    if (!nameInput.value) nameInput.value = found.name;
+    // Fill category
+    const catSel = tr.querySelector('select');
+    catSel.innerHTML = catDropdownHTML(found.catId);
+    // Fill qty/ctn
+    tr.querySelector('.cl-qty').value = catQty(found.catId) || '';
+  } else {
+    tag.className = 'tag-unmatched'; tag.textContent = '! not found';
+  }
+  input.parentElement.appendChild(tag);
+}
+
+function clCatChange(sel) {
+  const tr      = sel.closest('tr');
+  const qtyInput = tr.querySelector('.cl-qty');
+  if (sel.value === '__custom__') { qtyInput.value = ''; qtyInput.focus(); }
+  else { const q = catQty(sel.value); if (q) qtyInput.value = q; }
+}
+
+function getCLRows() {
+  const sharedPO  = document.getElementById('sh-po').value.trim();
+  const sharedLoc = document.getElementById('sh-loc').value;
+  return [...document.querySelectorAll('#cl-body tr')].map(tr=>{
+    const ins    = tr.querySelectorAll('input');
+    const catSel = tr.querySelector('select');
+    const qty      = parseInt(ins[2].value)||0;  // cl-qty
+    const totalQty = parseInt(ins[3].value)||0;  // cl-ctns
+    const fullCtns = qty>0 ? Math.floor(totalQty/qty) : 0;
+    const looseQty = qty>0 ? totalQty%qty : 0;
+    const totalCtns= fullCtns+(looseQty>0?1:0);
+    return {
+      skuCode: ins[0].value.trim(),
+      name:    ins[1].value.trim(),
+      catId:   catSel ? catSel.value : '',
+      qty, totalQty, fullCtns, looseQty, totalCtns,
+      po:  sharedPO,
+      loc: sharedLoc
+    };
+  });
+}
+
+// ══════════════════════════════════════════
+// PALLETS
+// ══════════════════════════════════════════
+let pc=0;
+function addPallet() {
+  pc++;
+  const n = pc;
+  const div = document.createElement('div');
+  div.className = 'pallet-row';
+  div.innerHTML = `
+    <label>Pallet ${n}</label>
+    <input type="text" style="width:180px" placeholder="e.g. 113*113*145" oninput="calcCBM()">
+    <button class="btn-del" onclick="this.parentElement.remove();calcCBM()">×</button>`;
+  document.getElementById('pallets').appendChild(div);
+  calcCBM();
+}
+
+function getPallets() {
+  return [...document.querySelectorAll('#pallets .pallet-row')].map((div, i) => {
+    const val = div.querySelector('input').value.trim();
+    const parts = val.split(/[*xX×\s]+/).map(v => v.trim());
+    return {
+      num: i + 1,
+      raw: val,
+      l: parts[0] || '?',
+      w: parts[1] || '?',
+      h: parts[2] || '?'
+    };
+  });
+}
+
+function calcCBM() {
+  const pallets = getPallets();
+  const valid = pallets.filter(p => parseFloat(p.l) && parseFloat(p.w) && parseFloat(p.h));
+  if (!valid.length) { document.getElementById('cbm-bar').style.display = 'none'; return; }
+
+  let total = 0;
+  const parts = valid.map(p => {
+    const cbm = (parseFloat(p.l) * parseFloat(p.w) * parseFloat(p.h)) / 1000000;
+    total += cbm;
+    return `Pallet ${p.num}: ${cbm.toFixed(3)} m³`;
+  });
+
+  document.getElementById('cbm-bar').style.display = 'block';
+  document.getElementById('cbm-total').textContent = total.toFixed(3);
+  document.getElementById('cbm-breakdown').textContent = parts.join('  |  ');
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function rn(id){ document.querySelectorAll('#'+id+' tr').forEach((tr,i)=>tr.cells[0].textContent=i+1); }
+async function clearTbl(p){ if(await askConfirm('Clear all items?', 'Clear')){ document.getElementById(p+'-body').innerHTML=''; if(p==='ci')calcCI(); else if(p==='pl')calcPL(); } }
+function xe(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function fm(n){ return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function fmtDate(v){ if(!v)return''; const d=new Date(v+'T00:00:00'); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase(); }
+
+// ══════════════════════════════════════════
+// PDF HEADER
+// ══════════════════════════════════════════
+function buildPDFHeader(doc, title, prefix) {
+  const ml=14, mr=196, W=210; let y=14;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text(EXPORTER.name || '', W/2, y, {align:'center'}); y+=5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(8);
+  if (EXPORTER.officeAddr)    { doc.text('Office Address: '    + EXPORTER.officeAddr,    W/2, y, {align:'center'}); y+=4.5; }
+  if (EXPORTER.warehouseAddr) { doc.text('Warehouse Address: ' + EXPORTER.warehouseAddr, W/2, y, {align:'center'}); y+=4.5; }
+  if (EXPORTER.uen)           { doc.text('UEN ' + EXPORTER.uen, W/2, y, {align:'center'}); }
+  y+=7;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text(title, W/2, y, {align:'center'});
+  const tw=doc.getTextWidth(title);
+  doc.line(W/2-tw/2, y+1, W/2+tw/2, y+1); y+=8;
+  const inv  = document.getElementById('sh-ref').value||'—';
+  const date = fmtDate(document.getElementById('sh-date').value);
+  const ctry = document.getElementById('sh-dest').value;
+  const dest = (ctry && ADDR_MAP[ctry]) ? ADDR_MAP[ctry].label.toUpperCase() : '—';
+  doc.setFontSize(10);
+  doc.text('Invoice No.: '+inv, ml, y); doc.text('Date: '+date, mr, y, {align:'right'}); y+=6;
+  doc.text('FROM: SINGAPORE', ml, y); doc.text('TO: '+dest, mr, y, {align:'right'}); y+=6;
+  if (ctry && ADDR_MAP[ctry]) {
+    const d=ADDR_MAP[ctry], half=(mr-ml)/2, leftX=ml, rightX=ml+half+4, colW=half-4;
+    let blockY=y, shipY=y;
+    if (d.buyer) {
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+      doc.text('Buyer:', leftX, blockY); blockY+=4.5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      doc.splitTextToSize(d.buyer, colW).forEach(ln=>{ doc.text(ln,leftX,blockY); blockY+=4; });
+      shipY=y;
+    }
+    const shipX=d.buyer?rightX:leftX, shipW=d.buyer?colW:mr-ml;
+    const shipToLines=[d.consigneeName,d.address].filter(Boolean).join('\n');
+    const contactParts=[];
+    if(d.attention) contactParts.push('Attn: '+d.attention);
+    if(d.phone)     contactParts.push('Phone: '+d.phone);
+    const contactStr=contactParts.join(' | ');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    doc.text('Ship To:', shipX, shipY); shipY+=4.5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.splitTextToSize(shipToLines, shipW).forEach(ln=>{ doc.text(ln,shipX,shipY); shipY+=4; });
+    if (contactStr) { doc.splitTextToSize('Contact: '+contactStr, shipW).forEach(ln=>{ doc.text(ln,shipX,shipY); shipY+=4; }); }
+    if (d.recv)     { doc.text('Receiving: '+d.recv, shipX, shipY); shipY+=4; }
+    y=Math.max(blockY,shipY)+4;
+    doc.setDrawColor(200,200,200); doc.line(ml,y-2,mr,y-2); doc.setDrawColor(0,0,0); y+=2;
+  }
+  return {doc,y,ml,mr,W};
+}
+
+// ══════════════════════════════════════════
+// GENERATE CI
+// ══════════════════════════════════════════
+function genCI() {
+  const ctry=document.getElementById('sh-dest').value;
+  if(!ctry){toast('Please select a destination.', true);return;}
+  const rows=getCIR(); if(!rows.length){toast('Please add at least one item.', true);return;}
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const {y,ml,mr}=buildPDFHeader(doc,'COMMERCIAL INVOICE','ci');
+  const tQ=rows.reduce((s,r)=>s+r.qty,0), tV=rows.reduce((s,r)=>s+r.total,0);
+  const body=rows.map((r,i)=>[i+1,r.desc,r.qty,r.price.toFixed(2),fm(r.total)]);
+  body.push(['',{content:`TOTAL (${rows.length} items)`,styles:{fontStyle:'bold'}},{content:tQ,styles:{fontStyle:'bold',halign:'center'}},'',{content:fm(tV),styles:{fontStyle:'bold',halign:'right'}}]);
+  doc.autoTable({ startY:y+4, head:[['Item','Item Description','Quantity','Unit Price (SGD)','Total Price (SGD)']], body, styles:{fontSize:8.5,cellPadding:3}, headStyles:{fillColor:[45,55,72],halign:'center',fontStyle:'bold',fontSize:8}, columnStyles:{0:{halign:'center',cellWidth:12},1:{cellWidth:'auto'},2:{halign:'center',cellWidth:24},3:{halign:'right',cellWidth:34},4:{halign:'right',cellWidth:38}}, alternateRowStyles:{fillColor:[247,250,252]} });
+  doc.save(`CommercialInvoice_${document.getElementById('sh-ref').value||'CI'}.pdf`);
+}
+
+// ══════════════════════════════════════════
+// GENERATE PL
+// ══════════════════════════════════════════
+// Parse pallet split string e.g. "20-1, 10-2" → {1: 20, 2: 10}
+function parseSplit(splitStr) {
+  const result = {};
+  if (!splitStr) return result;
+  splitStr.split(',').forEach(part => {
+    const m = part.trim().match(/^(\d+)-(\d+)$/);
+    if (m) result[m[2]] = (result[m[2]] || 0) + parseInt(m[1]);
+  });
+  return result;
+}
+
+// Build palletCTN map from PL rows, respecting split field
+function buildPalletCTN(rows) {
+  const map = {};
+  rows.forEach(r => {
+    if (r.split) {
+      const splits = parseSplit(r.split);
+      Object.entries(splits).forEach(([pNum, ctn]) => {
+        map[pNum] = (map[pNum] || 0) + ctn;
+      });
+    } else {
+      const pNum = r.pallet ? r.pallet.toString().trim() : '';
+      if (pNum) map[pNum] = (map[pNum] || 0) + r.ctn;
+    }
+  });
+  return map;
+}
+
+async function genPL() {
+  const ctry=document.getElementById('sh-dest').value;
+  if(!ctry){toast('Please select a destination.', true);return;}
+  const rows=getPLR(); if(!rows.length){toast('Please add at least one item.', true);return;}
+
+  // ── Discrepancy check: pallet numbers in line items vs pallet dimensions ──
+  const ps = getPallets();
+  if (ps.length) {
+    const dimPallets = new Set(ps.map(p => p.num.toString()));
+    const itemPallets = new Set();
+    rows.forEach(r => {
+      if (r.split) { Object.keys(parseSplit(r.split)).forEach(p => itemPallets.add(p)); }
+      else if (r.pallet) { itemPallets.add(r.pallet.toString()); }
+    });
+    const missing = [...itemPallets].filter(p => !dimPallets.has(p));
+    const extra   = [...dimPallets].filter(p => !itemPallets.has(p));
+    const noDim   = ps.filter(p => !parseFloat(p.l) || !parseFloat(p.w) || !parseFloat(p.h));
+    const splitMismatch = rows.filter(r => {
+      if (!r.split) return false;
+      const splitTotal = Object.values(parseSplit(r.split)).reduce((s,v)=>s+v,0);
+      return splitTotal !== r.ctn;
+    });
+    if (missing.length || extra.length || noDim.length || splitMismatch.length) {
+      let msg = 'Pallet mismatch detected:\n\n';
+      if (missing.length)       msg += `• Pallet(s) ${missing.join(', ')} found in line items but have no dimension entered.\n`;
+      if (extra.length)         msg += `• Pallet(s) ${extra.join(', ')} have dimensions but no matching line items.\n`;
+      if (noDim.length)         msg += `• Pallet(s) ${noDim.map(p=>p.num).join(', ')} are missing L*W*H dimensions.\n`;
+      if (splitMismatch.length) msg += `• ${splitMismatch.length} row(s) have a Pallet Split that doesn't add up to the row's CTN.\n`;
+      msg += '\nDo you want to proceed anyway?';
+      if (!(await askConfirm(msg, 'Proceed anyway'))) return;
+    }
+  }
+
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const {y,ml}=buildPDFHeader(doc,'PACKING LIST','pl');
+  const tC=rows.reduce((s,r)=>s+r.ctn,0),tQ=rows.reduce((s,r)=>s+r.qty,0),tN=rows.reduce((s,r)=>s+r.tN,0),tG=rows.reduce((s,r)=>s+r.tG,0);
+  const body=rows.map((r,i)=>[i+1,r.pallet,r.code,r.desc,r.ctn,r.qty,r.net.toFixed(3),r.gross.toFixed(3),r.tN.toFixed(3),r.tG.toFixed(3)]);
+  body.push(['','','',{content:'TOTAL',styles:{fontStyle:'bold'}},{content:tC,styles:{fontStyle:'bold',halign:'center'}},{content:tQ,styles:{fontStyle:'bold',halign:'center'}},'','',{content:tN.toFixed(3),styles:{fontStyle:'bold',halign:'right'}},{content:tG.toFixed(3),styles:{fontStyle:'bold',halign:'right'}}]);
+  doc.autoTable({ startY:y+4, head:[['#','Pallet\nNo.','Item\nCode','Item Description','CTN','Qty','Net Wt\n(KGM)','Gross Wt\n(KGM)','Total Net\nWt','Total Gross\nWt']], body, styles:{fontSize:7.5,cellPadding:2.5,overflow:'linebreak'}, headStyles:{fillColor:[45,55,72],halign:'center',fontStyle:'bold',fontSize:7}, columnStyles:{0:{halign:'center',cellWidth:8},1:{halign:'center',cellWidth:14},2:{halign:'center',cellWidth:15},3:{cellWidth:'auto'},4:{halign:'center',cellWidth:11},5:{halign:'center',cellWidth:12},6:{halign:'right',cellWidth:18},7:{halign:'right',cellWidth:19},8:{halign:'right',cellWidth:19},9:{halign:'right',cellWidth:20}}, alternateRowStyles:{fillColor:[247,250,252]} });
+  let fy = doc.lastAutoTable.finalY + 8;
+  const PAGE_H = 287; // A4 height in mm with margin
+  const MARGIN_BOTTOM = 15;
+
+  // Helper: add new page if content would overflow
+  function checkPage(neededSpace) {
+    if (fy + neededSpace > PAGE_H - MARGIN_BOTTOM) {
+      doc.addPage();
+      fy = 14;
+    }
+  }
+
+  const psAll = getPallets();
+  // Only include pallets with all 3 valid numeric dimensions
+  const psValid = psAll.filter(p => parseFloat(p.l) && parseFloat(p.w) && parseFloat(p.h));
+
+  if (psValid.length) {
+    const palletCTN = buildPalletCTN(getPLR());
+
+    // Calculate CBM per pallet
+    let totalCBM = 0;
+    const palletCBMMap = {};
+    psValid.forEach(p => {
+      const l = parseFloat(p.l), w = parseFloat(p.w), h = parseFloat(p.h);
+      const cbm = (l * w * h) / 1000000;
+      palletCBMMap[p.num] = cbm;
+      totalCBM += cbm;
+    });
+
+    checkPage(10);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text(`SAY TOTAL: ${psValid.length} Pallet${psValid.length>1?'s':''} ONLY`, ml, fy); fy += 5;
+
+    checkPage(5);
+    doc.text('Dimension of pallet & weight', ml, fy); fy += 5;
+    doc.setFont('helvetica','normal');
+
+    psValid.forEach(p => {
+      checkPage(5);
+      const ctn    = palletCTN[p.num.toString()] || palletCTN[p.num] || null;
+      const ctnTxt = ctn ? ` - ${ctn} CTN` : '';
+      const cbm    = palletCBMMap[p.num];
+      const cbmTxt = cbm ? `  (${cbm.toFixed(3)} m³)` : '';
+      doc.text(`Pallet ${p.num}: ${p.l}cm(L)*${p.w}cm(W)*${p.h}cm(H)${ctnTxt}${cbmTxt}`, ml, fy); fy += 5;
+    });
+
+    fy += 2;
+    checkPage(10);
+    doc.setFont('helvetica','bold');
+    doc.text(`TOTAL CTN: ${tC} CTN`, ml, fy); fy += 5;
+    if (totalCBM > 0) {
+      checkPage(5);
+      doc.text(`TOTAL CBM: ${totalCBM.toFixed(3)} m³`, ml, fy);
+    }
+  }
+  doc.save(`PackingList_${document.getElementById('sh-ref').value||'PL'}.pdf`);
+}
+
+// ══════════════════════════════════════════
+// GENERATE PALLET LABELS (A4, one per pallet)
+// ══════════════════════════════════════════
+function genPalletLabels() {
+  const ctry = document.getElementById('sh-dest').value;
+  if (!ctry) { toast('Please select a destination.', true); return; }
+
+  const ps = getPallets().filter(p => p.l !== '?' || p.w !== '?' || p.h !== '?');
+  if (!ps.length) { toast('Please add at least one pallet in the Pallet Dimensions section.', true); return; }
+
+  const inv     = document.getElementById('sh-ref').value || '—';
+  const dest    = (ADDR_MAP[ctry] ? ADDR_MAP[ctry].label : ctry).toUpperCase();
+  const route   = `SG  to  ${dest}`;
+  const total   = ps.length;
+
+  const palletCTN = buildPalletCTN(getPLR());
+
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const W = 210, H = 297;
+  const ML = 20, MR = 190; // left/right margin
+  const CW = MR - ML;      // content width = 170mm
+
+  ps.forEach((p, idx) => {
+    if (idx > 0) doc.addPage();
+
+    const ctn = palletCTN[p.num.toString()] || palletCTN[p.num] || '—';
+
+    // ── Header bar ──────────────────────────────────────────────────────────
+    doc.setFillColor(26, 26, 46);
+    doc.rect(0, 0, W, 36, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text('PUREST NEST PTE LTD', W / 2, 18, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(200, 200, 200);
+    doc.text('PACKING LABEL', W / 2, 28, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+
+    // ── Helper: draw a field block ──────────────────────────────────────────
+    function field(label, value, y, h, fontSize, bold) {
+      doc.setDrawColor(220, 220, 220);
+      doc.setFillColor(250, 250, 250);
+      doc.rect(ML, y, CW, h, 'FD');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(140, 140, 140);
+      doc.text(label, ML + 6, y + 9);
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(fontSize);
+      doc.setTextColor(26, 26, 46);
+      doc.text(String(value), ML + 6, y + h - 8);
+    }
+
+    // ── Fields ───────────────────────────────────────────────────────────────
+    let fy = 46;
+    const GAP = 5;
+
+    // Shipment code
+    field('SHIPMENT CODE', inv, fy, 36, 24, true); fy += 36 + GAP;
+
+    // Route
+    field('ROUTE', route, fy, 36, 24, true); fy += 36 + GAP;
+
+    // Pallet number — large prominent
+    doc.setDrawColor(26, 26, 46);
+    doc.setFillColor(26, 26, 46);
+    doc.rect(ML, fy, CW, 70, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(180, 180, 180);
+    doc.text('PALLET', ML + 6, fy + 12);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(80);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`${p.num}`, ML + 6, fy + 58);
+    const bigNumWidth = doc.getTextWidth(`${p.num}`);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(14);
+    doc.setTextColor(180, 180, 180);
+    doc.text(`of  ${total}`, ML + 6 + bigNumWidth + 3, fy + 58);
+    doc.setTextColor(0, 0, 0);
+    fy += 70 + GAP;
+
+    // Carton qty
+    field('CARTON QTY', ctn, fy, 50, 40, true); fy += 50 + GAP;
+  });
+
+  doc.save(`PalletLabels_${inv}.pdf`);
+}
+
+// ══════════════════════════════════════════
+// ══════════════════════════════════════════
+function genLabels() {
+  const po  = document.getElementById('sh-po').value.trim();
+  const loc = document.getElementById('sh-loc').value;
+  if (!po)  { toast('Please enter a PO No.', true); return; }
+  if (!loc) { toast('Please select a Delivery Location.', true); return; }
+  const rows = getCLRows().filter(r=>r.name&&r.qty&&r.totalQty);
+  if (!rows.length) { toast('Please add at least one item with name, Qty/Ctn and Total Qty.', true); return; }
+  const doc = new jsPDF({unit:'mm',format:[100,150],orientation:'portrait'});
+  let first = true;
+  const grandTotal = rows.reduce((s,r)=>s+r.totalCtns,0);
+  let counter = 0;
+  rows.forEach(r=>{
+    for(let c=1;c<=r.totalCtns;c++){
+      if(!first) doc.addPage([100,150]);
+      first=false; counter++;
+      const isLast  = c===r.totalCtns;
+      const labelQty= (isLast&&r.looseQty>0) ? r.looseQty : r.qty;
+      drawLabel(doc, r, counter, grandTotal, labelQty);
+    }
+  });
+  doc.save(`CartonLabels_${po||'PN'}.pdf`);
+}
+
+function drawLabel(doc, r, num, grandTotal, labelQty) {
+  const W=100, ml=5, mr=95;
+  doc.setFillColor(45,55,72); doc.rect(0,0,W,26,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text('PUREST NEST', W/2, 17, {align:'center'});
+  doc.setTextColor(0,0,0);
+  const rowDefs=[
+    {label:'ITEM NAME',        value: r.name},
+    {label:'PO NO.',           value: r.po||'—'},
+    {label:'DELIVERY LOCATION',value: r.loc||'—'},
+  ];
+  let y=28;
+  rowDefs.forEach((row,i)=>{
+    if(i>0){doc.setDrawColor(210,210,210);doc.line(ml,y,mr,y);}
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(130,130,130);
+    doc.text(row.label,ml+2,y+6);
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(26,32,44);
+    const lines=doc.splitTextToSize(row.value,mr-ml-4);
+    doc.text(lines,ml+2,y+14);
+    y+=lines.length>1?20:18;
+  });
+  doc.setDrawColor(210,210,210); doc.line(ml,y,mr,y); doc.line(W/2,y,W/2,148);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(130,130,130);
+  doc.text('QTY / CTN',ml+2,y+8);
+  doc.setFont('helvetica','bold');doc.setFontSize(28);doc.setTextColor(26,32,44);
+  doc.text(String(labelQty),ml+2,y+26);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(130,130,130);
+  doc.text('CARTON NO.',W/2+3,y+8);
+  doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(26,32,44);
+  doc.text(`${num} / ${grandTotal}`,W/2+3,y+26);
+}
+
+// ══════════════════════════════════════════
+// PASTE SETUP
+// ══════════════════════════════════════════
+function askConfirm(msg, yesLabel){
+  return new Promise(function(resolve){
+    const ov=document.getElementById('cfm-overlay');
+    document.getElementById('cfm-msg').textContent=msg;
+    const yes=document.getElementById('cfm-yes'), no=document.getElementById('cfm-no');
+    yes.textContent=yesLabel||'Confirm';
+    ov.classList.add('show');
+    function done(v){ ov.classList.remove('show'); yes.onclick=null; no.onclick=null; resolve(v); }
+    yes.onclick=function(){ done(true); };
+    no.onclick=function(){ done(false); };
+  });
+}
+function quickAddCI(){
+  const desc=document.getElementById('ci-qa-desc').value.trim();
+  const qty=document.getElementById('ci-qa-qty').value;
+  const price=document.getElementById('ci-qa-price').value;
+  if(!desc){ toast('Enter an item description.', true); document.getElementById('ci-qa-desc').focus(); return; }
+  addCI({desc:desc, qty:qty, price:price}, true);
+  document.getElementById('ci-qa-desc').value=''; document.getElementById('ci-qa-qty').value=''; document.getElementById('ci-qa-price').value='';
+  document.getElementById('ci-qa-desc').focus();
+}
+function quickAddPL(){
+  const pallet=document.getElementById('pl-qa-pallet').value.trim();
+  const split=document.getElementById('pl-qa-split').value.trim();
+  const code=document.getElementById('pl-qa-code').value.trim();
+  const desc=document.getElementById('pl-qa-desc').value.trim();
+  const ctn=document.getElementById('pl-qa-ctn').value;
+  const qty=document.getElementById('pl-qa-qty').value;
+  const net=document.getElementById('pl-qa-net').value;
+  const gross=document.getElementById('pl-qa-gross').value;
+  if(!desc && !code){ toast('Enter at least an item code or description.', true); document.getElementById('pl-qa-code').focus(); return; }
+  addPL({pallet:pallet, split:split, code:code, desc:desc, ctn:ctn, qty:qty, net:net, gross:gross}, true);
+  ['pl-qa-pallet','pl-qa-split','pl-qa-code','pl-qa-desc','pl-qa-ctn','pl-qa-qty','pl-qa-net','pl-qa-gross'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('pl-qa-code').focus();
+}
+function quickAddCL(){
+  const skuCode=document.getElementById('cl-qa-sku').value.trim();
+  const name=document.getElementById('cl-qa-name').value.trim();
+  const catId=document.getElementById('cl-qa-cat').value;
+  const qty=document.getElementById('cl-qa-qty').value;
+  const totalQty=document.getElementById('cl-qa-total').value;
+  if(!skuCode && !name){ toast('Enter a SKU code or item name.', true); document.getElementById('cl-qa-sku').focus(); return; }
+  addCL({skuCode:skuCode, name:name, catId:catId, qty:qty, totalQty:totalQty}, true);
+  ['cl-qa-sku','cl-qa-name','cl-qa-qty','cl-qa-total'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('cl-qa-cat').value='';
+  document.getElementById('cl-qa-sku').focus();
+}
+
+setupPaste('ci-paste', cols=>{
+  let desc='',qty='',price='';
+  if(cols.length>=4&&!isNaN(parseFloat(cols[0]))&&isNaN(parseFloat(cols[1]))){desc=cols[1];qty=cols[2];price=cols[3];}
+  else{desc=cols[0]||'';qty=cols[1]||'';price=cols[2]||'';}
+  addCI({desc,qty,price},true);
+});
+
+setupPaste('pl-paste', cols=>addPL({pallet:cols[0],code:cols[1],desc:cols[2],ctn:cols[3],qty:cols[4],net:cols[5],gross:cols[6]},true));
+
+// Carton Labels paste: Col A=SKU, Col B=ProductCode(skip), Col C=Name, Col D=TotalQty
+setupPaste('cl-paste', cols=>{
+  const skuCode  = cols[0] || '';
+  const name     = cols[2] || '';  // Col C
+  const totalQty = cols[3] || '';  // Col D
+  addCL({ skuCode, name, totalQty }, true);
+});
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+// Data + UI initialise after successful login (onAuthStateChanged -> loadCloudData -> initUI).
+</script>
+</body>
+</html>
