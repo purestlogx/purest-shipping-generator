@@ -173,7 +173,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: #FDF8F2; color
   <div class="logo">PN</div>
   <div>
     <h1>Purest Nest Document Generator</h1>
-    <p>Commercial Invoice · Packing List · Carton Labels · v2.2</p>
+    <p>Commercial Invoice · Packing List · Carton Labels · v2.3</p>
   </div>
   <div class="topbar-actions">
     <span class="who" id="who"></span>
@@ -1540,10 +1540,57 @@ function buildPDFHeader(doc, title, prefix) {
 // ══════════════════════════════════════════
 // GENERATE CI
 // ══════════════════════════════════════════
-function genCI() {
+// CI and PL must agree on total quantity. Only checked when both tables have items,
+// so generating one document on its own is never blocked. Returns true to proceed.
+async function checkCIvsPL() {
+  const ci = getCIR(), pl = getPLR();
+  if (!ci.length || !pl.length) return true;
+  const ciQ = ci.reduce((s,r)=>s+r.qty,0), plQ = pl.reduce((s,r)=>s+r.qty,0);
+  if (ciQ === plQ) return true;
+  const diff = Math.abs(ciQ - plQ);
+  let msg = 'Commercial Invoice and Packing List don\'t match:\n\n'
+    + `• Commercial Invoice total qty: ${ciQ}\n`
+    + `• Packing List total qty: ${plQ}\n`
+    + `• Difference: ${diff} (${ciQ > plQ ? 'CI has more' : 'PL has more'})\n`;
+  const items = itemMismatches(ci, pl);
+  if (items.length) {
+    const MAX = 8;
+    msg += '\nProducts that don\'t tally:\n'
+      + items.slice(0, MAX).map(t => `• ${t}`).join('\n') + '\n'
+      + (items.length > MAX ? `…and ${items.length - MAX} more\n` : '');
+  }
+  msg += '\nCustoms may query a mismatch. Do you want to proceed anyway?';
+  return askConfirm(msg, 'Proceed anyway');
+}
+
+// Per-product comparison, matched on description (ignores capitals and extra spaces).
+// A product spread over several PL rows (one per pallet) is summed first.
+function itemMismatches(ci, pl) {
+  const key = s => s.toLowerCase().replace(/\s+/g, ' ').trim();
+  const tally = rows => {
+    const m = new Map();
+    rows.forEach(r => {
+      const k = key(r.desc); if (!k) return;
+      const e = m.get(k) || { name: r.desc.trim(), qty: 0 };
+      e.qty += r.qty; m.set(k, e);
+    });
+    return m;
+  };
+  const ciM = tally(ci), plM = tally(pl), out = [];
+  ciM.forEach((c, k) => {
+    const p = plM.get(k);
+    if (!p)                 out.push(`${c.name}: on CI only (${c.qty})`);
+    else if (p.qty !== c.qty) out.push(`${c.name}: CI ${c.qty}, PL ${p.qty} (${c.qty > p.qty ? 'CI' : 'PL'} +${Math.abs(c.qty - p.qty)})`);
+  });
+  plM.forEach((p, k) => { if (!ciM.has(k)) out.push(`${p.name}: on PL only (${p.qty})`); });
+  return out;
+}
+
+async function genCI() {
   const ctry=document.getElementById('sh-dest').value;
   if(!ctry){toast('Please select a destination.', true);return;}
   const rows=getCIR(); if(!rows.length){toast('Please add at least one item.', true);return;}
+  if (!(await checkCIvsPL())) return;
   const doc=new jsPDF({unit:'mm',format:'a4'});
   const {y,ml,mr}=buildPDFHeader(doc,'COMMERCIAL INVOICE','ci');
   const tQ=rows.reduce((s,r)=>s+r.qty,0), tV=rows.reduce((s,r)=>s+r.total,0);
@@ -1588,6 +1635,7 @@ async function genPL() {
   const ctry=document.getElementById('sh-dest').value;
   if(!ctry){toast('Please select a destination.', true);return;}
   const rows=getPLR(); if(!rows.length){toast('Please add at least one item.', true);return;}
+  if (!(await checkCIvsPL())) return;
 
   // ── Discrepancy check: pallet numbers in line items vs pallet dimensions ──
   const ps = getPallets();
