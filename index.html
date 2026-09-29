@@ -173,7 +173,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: #FDF8F2; color
   <div class="logo">PN</div>
   <div>
     <h1>Purest Nest Document Generator</h1>
-    <p>Commercial Invoice · Packing List · Carton Labels · v2.1</p>
+    <p>Commercial Invoice · Packing List · Carton Labels · v2.2</p>
   </div>
   <div class="topbar-actions">
     <span class="who" id="who"></span>
@@ -334,7 +334,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: #FDF8F2; color
     <div class="gen-section">
       <button class="btn-gen btn-pl-gen" onclick="genPL()">⬇ Download Packing List (PDF)</button>
       <button class="btn-gen" style="background:linear-gradient(135deg,#004C4F,#375428);color:white;margin-left:12px;" onclick="genPalletLabels()">⬇ Download Pallet Labels (PDF)</button>
-      <p class="notice">Pallet Labels: one A4 label per pallet, auto-filled from shipment details above.</p>
+      <p class="notice">Pallet Labels: one A4 label per pallet, auto-filled from shipment details above. Dimensions are optional — pallets are taken from this section and from the pallet numbers in your packing list items.</p>
     </div>
   </div>
 
@@ -1688,15 +1688,25 @@ function genPalletLabels() {
   const ctry = document.getElementById('sh-dest').value;
   if (!ctry) { toast('Please select a destination.', true); return; }
 
-  const ps = getPallets().filter(p => p.l !== '?' || p.w !== '?' || p.h !== '?');
-  if (!ps.length) { toast('Please add at least one pallet in the Pallet Dimensions section.', true); return; }
+  // Labels don't print dimensions, so a pallet counts whether or not its L*W*H is filled.
+  // Pallet list = every Pallet Dimensions row + every pallet number used in the line items.
+  const palletCTN = buildPalletCTN(getPLR());
+  const rowNums   = getPallets().map(p => p.num.toString());
+  const itemNums  = Object.keys(palletCTN);
+  const ps = [...new Set([...rowNums, ...itemNums])]
+    .sort((a, b) => (parseFloat(a) - parseFloat(b)) || a.localeCompare(b))
+    .map(num => ({ num }));
+  if (!ps.length) { toast('Add pallet numbers to the packing list items, or add pallets in the Pallet Dimensions section.', true); return; }
+
+  const itemsOnly = itemNums.filter(n => !rowNums.includes(n));
+  if (rowNums.length && itemsOnly.length) {
+    toast(`Note: Pallet(s) ${itemsOnly.join(', ')} come from line items only (not in Pallet Dimensions). Labels generated anyway.`);
+  }
 
   const inv     = document.getElementById('sh-ref').value || '—';
   const dest    = (ADDR_MAP[ctry] ? ADDR_MAP[ctry].label : ctry).toUpperCase();
   const route   = `SG  to  ${dest}`;
   const total   = ps.length;
-
-  const palletCTN = buildPalletCTN(getPLR());
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
   const W = 210, H = 297;
